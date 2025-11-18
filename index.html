@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>视频播放器</title>
+</head>
+<body>
+<!-- 第一行：输入框和播放按钮 -->
+<div style="display: flex;">
+    <input type="text" id="videoUrl" placeholder="请输入视频下载链接" style="min-width: 10%; width: 68%; max-width: 800px;" onkeypress="handleKeyPress(event)">
+    <input type="button" style="margin-left: 3px;" value="下载" onclick="downloadVideo()">
+    <input type="button" style="margin-left: 3px;" value="播放" onclick="playVideo()">
+</div>
+
+<!-- 第二行：视频播放区域 -->
+<div style="margin-top: 10px;">
+    <video id="videoPlayer" 
+           controls 
+           style="background-color: black; max-width: 100%; max-height: 100vh; width: 100%;"
+           onloadedmetadata="adjustSize()">
+        您的浏览器不支持视频播放
+    </video>
+</div>
+
+<!-- 倍速选择区域 -->
+<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>速度: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.5" onchange="changeSpeed(this.value)">0.5x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.75" onchange="changeSpeed(this.value)">0.75x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="1.0" checked onchange="changeSpeed(this.value)">1.0x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="1.25" onchange="changeSpeed(this.value)">1.25x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="1.5" onchange="changeSpeed(this.value)">1.5x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="2.0" onchange="changeSpeed(this.value)">2.0x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="3.0" onchange="changeSpeed(this.value)">3.0x</label></div>
+</div>
+
+<!-- 音量选择区域 -->
+<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>音量: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0" onchange="changeVolume(this.value)">静音</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.1" onchange="changeVolume(this.value)">10%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.2" onchange="changeVolume(this.value)">20%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.3" onchange="changeVolume(this.value)">30%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.4" onchange="changeVolume(this.value)">40%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.5" onchange="changeVolume(this.value)">50%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.6" onchange="changeVolume(this.value)">60%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.7" onchange="changeVolume(this.value)">70%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.8" onchange="changeVolume(this.value)">80%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="0.9" onchange="changeVolume(this.value)">90%</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="volume" value="1.0" checked onchange="changeVolume(this.value)">100%</label></div>
+</div>
+
+<!-- 循环播放选择区域 -->
+<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>循环播放: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="loop" value="false" checked onchange="changeLoop(this.value)">否</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="loop" value="true" onchange="changeLoop(this.value)">是</label></div>
+</div>
+
+<!-- 来源选择区域 -->
+<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>来源: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="source" value="none" onchange="handleSourceChange(this.value)">无</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="source" value="url" checked onchange="handleSourceChange(this.value)">URL</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="source" value="local" onchange="handleSourceChange(this.value)">本地文件</label></div>
+    <input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;" onchange="handleFileSelect(this.files)">
+</div>
+
+<script>
+function playVideo() {
+    const videoUrl = document.getElementById('videoUrl').value.trim();
+    const videoPlayer = document.getElementById('videoPlayer');
+    const urlRadio = document.querySelector('input[name="source"][value="url"]');
+    
+    if (videoUrl) {
+        urlRadio.checked = true;
+        let url = videoUrl;
+        if (!url.includes('://')) {
+            url = 'https://' + url;
+        }
+        videoPlayer.src = url;
+        videoPlayer.load();
+        videoPlayer.style.backgroundColor = 'transparent';
+    }
+}
+
+function changeSpeed(speed) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.playbackRate = parseFloat(speed);
+}
+
+function downloadVideo() {
+    const videoUrl = document.getElementById('videoUrl').value.trim();
+    const fileInput = document.getElementById('fileInput');
+    
+    if (videoUrl) {
+        fetch(videoUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    const a = document.createElement('a');
+                    a.href = reader.result;
+                    a.download = 'video.mp4';
+                    a.click();
+                };
+                reader.readAsDataURL(blob);
+            });
+    } else if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            const a = document.createElement('a');
+            a.href = reader.result;
+            a.download = file.name;
+            a.click();
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function adjustSize() {
+    const videoPlayer = document.getElementById('videoPlayer');
+    const isHLS = videoPlayer.src.includes('.m3u8');
+    
+    if (!isHLS && videoPlayer.videoWidth === 0 && videoPlayer.videoHeight === 0) {
+        videoPlayer.style.maxWidth = '400px';
+        videoPlayer.style.maxHeight = '100px';
+    } else {
+        videoPlayer.style.maxWidth = '100%';
+        videoPlayer.style.maxHeight = '100vh';
+    }
+}
+
+function changeVolume(volume) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.volume = parseFloat(volume);
+    localStorage.setItem('videoVolume', volume);
+}
+
+// 加载保存的音量设置
+const savedVolume = localStorage.getItem('videoVolume');
+if (savedVolume) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.volume = parseFloat(savedVolume);
+    document.querySelector(`input[name="volume"][value="${savedVolume}"]`).checked = true;
+}
+
+function handleSourceChange(source) {
+    const fileInput = document.getElementById('fileInput');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoUrl = document.getElementById('videoUrl').value.trim();
+    
+    if (source === 'none') {
+        videoPlayer.src = '';
+        videoPlayer.style.backgroundColor = 'black';
+        document.querySelector('input[name="speed"][value="1.0"]').checked = true;
+        videoPlayer.playbackRate = 1.0;
+        fileInput.value = '';
+        document.getElementById('videoUrl').value = '';
+    } else if (source === 'local') {
+        fileInput.click();
+    } else {
+        if (videoUrl) {
+            let url = videoUrl;
+            if (!url.includes('://')) {
+                url = 'https://' + url;
+            }
+            videoPlayer.src = url;
+            videoPlayer.style.backgroundColor = 'transparent';
+        } else {
+            videoPlayer.src = '';
+            videoPlayer.style.backgroundColor = 'black';
+        }
+    }
+}
+
+function handleFileSelect(files) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    const urlRadio = document.querySelector('input[name="source"][value="url"]');
+    
+    if (files.length > 0) {
+        const file = files[0];
+        const objectURL = URL.createObjectURL(file);
+        videoPlayer.src = objectURL;
+        videoPlayer.style.backgroundColor = 'transparent';
+    } else {
+        urlRadio.checked = true;
+        videoPlayer.src = '';
+        videoPlayer.style.backgroundColor = 'black';
+    }
+}
+
+function changeLoop(loop) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.loop = loop === 'true';
+    localStorage.setItem('videoLoop', loop);
+}
+
+// 加载保存的循环播放设置
+const savedLoop = localStorage.getItem('videoLoop');
+if (savedLoop) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.loop = savedLoop === 'true';
+    document.querySelector(`input[name="loop"][value="${savedLoop}"]`).checked = true;
+}
+
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        if (videoUrl.value.trim() !== '') {
+            playVideo();
+            videoUrl.blur();
+        }
+    }
+}
+
+// 设置电脑端最大宽度
+document.body.style.maxWidth = '800px';
+</script>
+</body>
+</html>
