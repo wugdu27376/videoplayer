@@ -14,10 +14,10 @@
 </div>
 
 <!-- 第二行：视频播放区域 -->
-<div style="margin-top: 10px;">
+<div style="margin-top: 10px; max-width: 800px; width: 100%;">
     <video id="videoPlayer" 
            controls 
-           style="max-width: 100%; max-height: 100vh; width: 100%;"
+           style="background: black; max-width: 100%; max-height: 100vh; width: 100%;"
            onloadedmetadata="adjustSize()">
         您的浏览器不支持视频播放
     </video>
@@ -95,15 +95,15 @@
 
 <script>
 function playVideo() {
-    const videoUrl = document.getElementById('videoUrl').value.trim();
-    const videoPlayer = document.getElementById('videoPlayer');
-    const urlRadio = document.querySelector('input[name="source"][value="url"]');
-    const saveUrl = localStorage.getItem('saveVideoUrl');
+    var videoUrl = document.getElementById('videoUrl').value.trim();
+    var videoPlayer = document.getElementById('videoPlayer');
+    var urlRadio = document.querySelector('input[name="source"][value="url"]');
+    var saveUrl = localStorage.getItem('saveVideoUrl');
     
     if (videoUrl) {
         urlRadio.checked = true;
-        let url = videoUrl;
-        if (!url.includes('://')) {
+        var url = videoUrl;
+        if (url.indexOf('://') === -1) {
             url = 'https://' + url;
         }
         videoPlayer.src = url;
@@ -116,7 +116,7 @@ function playVideo() {
 }
 
 function changeSpeed(speed) {
-    const videoPlayer = document.getElementById('videoPlayer');
+    var videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.playbackRate = parseFloat(speed);
 }
 
@@ -125,38 +125,47 @@ function changeDownloadChannel(channel) {
 }
 
 function downloadVideo() {
-    const videoUrl = document.getElementById('videoUrl').value.trim();
-    const fileInput = document.getElementById('fileInput');
-    const downloadChannel = localStorage.getItem('downloadChannel') || 'external';
+    var videoUrl = document.getElementById('videoUrl').value.trim();
+    var fileInput = document.getElementById('fileInput');
+    var downloadChannel = localStorage.getItem('downloadChannel') || 'external';
     
     if (downloadChannel === 'external' && videoUrl) {
-        let url = videoUrl;
-        if (!url.includes('://')) {
+        var url = videoUrl;
+        if (url.indexOf('://') === -1) {
             url = 'https://' + url;
         }
         window.open(url, '_blank');
     } else {
         if (videoUrl) {
-            fetch(videoUrl)
-                .then(response => response.blob())
-                .then(blob => {
-                    const reader = new FileReader();
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', videoUrl, true);
+            xhr.responseType = 'blob';
+            xhr.onload = function() {
+                if (this.status === 200) {
+                    var blob = this.response;
+                    var reader = new FileReader();
                     reader.onloadend = function() {
-                        const a = document.createElement('a');
+                        var a = document.createElement('a');
                         a.href = reader.result;
                         a.download = 'video.mp4';
+                        document.body.appendChild(a);
                         a.click();
+                        document.body.removeChild(a);
                     };
                     reader.readAsDataURL(blob);
-                });
+                }
+            };
+            xhr.send();
         } else if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+            var file = fileInput.files[0];
+            var reader = new FileReader();
             reader.onloadend = function() {
-                const a = document.createElement('a');
+                var a = document.createElement('a');
                 a.href = reader.result;
                 a.download = file.name;
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
             };
             reader.readAsDataURL(file);
         }
@@ -164,14 +173,15 @@ function downloadVideo() {
 }
 
 // 加载保存的下载通道设置
-const savedDownloadChannel = localStorage.getItem('downloadChannel');
+var savedDownloadChannel = localStorage.getItem('downloadChannel');
 if (savedDownloadChannel) {
-    document.querySelector(`input[name="downloadChannel"][value="${savedDownloadChannel}"]`).checked = true;
+    var radio = document.querySelector('input[name="downloadChannel"][value="' + savedDownloadChannel + '"]');
+    if (radio) radio.checked = true;
 }
 
 function adjustSize() {
-    const videoPlayer = document.getElementById('videoPlayer');
-    const isHLS = videoPlayer.src.includes('.m3u8');
+    var videoPlayer = document.getElementById('videoPlayer');
+    var isHLS = videoPlayer.src.indexOf('.m3u8') !== -1;
     
     if (!isHLS && videoPlayer.videoWidth === 0 && videoPlayer.videoHeight === 0) {
         videoPlayer.style.maxWidth = '530px';
@@ -183,27 +193,29 @@ function adjustSize() {
 }
 
 function changeVolume(volume) {
-    const videoPlayer = document.getElementById('videoPlayer');
+    var videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.volume = parseFloat(volume);
     localStorage.setItem('videoVolume', volume);
 }
 
 // 加载保存的音量设置
-const savedVolume = localStorage.getItem('videoVolume');
+var savedVolume = localStorage.getItem('videoVolume');
 if (savedVolume) {
-    const videoPlayer = document.getElementById('videoPlayer');
+    var videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.volume = parseFloat(savedVolume);
-    document.querySelector(`input[name="volume"][value="${savedVolume}"]`).checked = true;
+    var radio = document.querySelector('input[name="volume"][value="' + savedVolume + '"]');
+    if (radio) radio.checked = true;
 }
 
 function handleSourceChange(source) {
-    const fileInput = document.getElementById('fileInput');
-    const videoPlayer = document.getElementById('videoPlayer');
-    const videoUrl = document.getElementById('videoUrl').value.trim();
+    var fileInput = document.getElementById('fileInput');
+    var videoPlayer = document.getElementById('videoPlayer');
+    var videoUrl = document.getElementById('videoUrl').value.trim();
     
     if (source === 'none') {
         videoPlayer.src = '';
-        document.querySelector('input[name="speed"][value="1.0"]').checked = true;
+        var speedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+        if (speedRadio) speedRadio.checked = true;
         videoPlayer.playbackRate = 1.0;
         fileInput.value = '';
         document.getElementById('videoUrl').value = '';
@@ -212,8 +224,8 @@ function handleSourceChange(source) {
         fileInput.click();
     } else {
         if (videoUrl) {
-            let url = videoUrl;
-            if (!url.includes('://')) {
+            var url = videoUrl;
+            if (url.indexOf('://') === -1) {
                 url = 'https://' + url;
             }
             videoPlayer.src = url;
@@ -224,46 +236,48 @@ function handleSourceChange(source) {
 }
 
 function handleFileSelect(files) {
-    const videoPlayer = document.getElementById('videoPlayer');
-    const urlRadio = document.querySelector('input[name="source"][value="url"]');
+    var videoPlayer = document.getElementById('videoPlayer');
+    var urlRadio = document.querySelector('input[name="source"][value="url"]');
     
     if (files.length > 0) {
-        const file = files[0];
-        const objectURL = URL.createObjectURL(file);
+        var file = files[0];
+        var objectURL = URL.createObjectURL(file);
         videoPlayer.src = objectURL;
-        document.querySelector('input[name="speed"][value="1.0"]').checked = true;
+        var speedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+        if (speedRadio) speedRadio.checked = true;
         localStorage.removeItem('savedVideoUrl');
-        videoUrl.value = '';
+        document.getElementById('videoUrl').value = '';
     } else {
-        urlRadio.checked = true;
+        if (urlRadio) urlRadio.checked = true;
         videoPlayer.src = '';
     }
 }
 
 function changeLoop(loop) {
-    const videoPlayer = document.getElementById('videoPlayer');
+    var videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.loop = loop === 'true';
     localStorage.setItem('videoLoop', loop);
 }
 
 // 加载保存的循环播放设置
-const savedLoop = localStorage.getItem('videoLoop');
+var savedLoop = localStorage.getItem('videoLoop');
 if (savedLoop) {
-    const videoPlayer = document.getElementById('videoPlayer');
+    var videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.loop = savedLoop === 'true';
-    document.querySelector(`input[name="loop"][value="${savedLoop}"]`).checked = true;
+    var radio = document.querySelector('input[name="loop"][value="' + savedLoop + '"]');
+    if (radio) radio.checked = true;
 }
 
 function changeAttachment(attachment) {
     localStorage.setItem('videoAttachment', attachment);
     
     if (attachment === 'hls') {
-        const script = document.createElement('script');
+        var script = document.createElement('script');
         script.src = 'https://unpkg.com/hls.js@latest';
         script.onload = function() {
-            if (Hls.isSupported()) {
-                const videoPlayer = document.getElementById('videoPlayer');
-                const hls = new Hls();
+            if (window.Hls && Hls.isSupported()) {
+                var videoPlayer = document.getElementById('videoPlayer');
+                var hls = new Hls();
                 hls.loadSource(videoPlayer.src);
                 hls.attachMedia(videoPlayer);
             }
@@ -273,9 +287,10 @@ function changeAttachment(attachment) {
 }
 
 // 加载保存的附件设置
-const savedAttachment = localStorage.getItem('videoAttachment');
+var savedAttachment = localStorage.getItem('videoAttachment');
 if (savedAttachment) {
-    document.querySelector(`input[name="attachment"][value="${savedAttachment}"]`).checked = true;
+    var radio = document.querySelector('input[name="attachment"][value="' + savedAttachment + '"]');
+    if (radio) radio.checked = true;
     if (savedAttachment === 'hls') {
         changeAttachment('hls');
     }
@@ -289,25 +304,28 @@ function changeSaveUrl(saveUrl) {
 }
 
 // 加载保存的链接设置和视频链接
-const savedSaveUrl = localStorage.getItem('saveVideoUrl');
+var savedSaveUrl = localStorage.getItem('saveVideoUrl');
 if (savedSaveUrl) {
-    document.querySelector(`input[name="saveUrl"][value="${savedSaveUrl}"]`).checked = true;
+    var radio = document.querySelector('input[name="saveUrl"][value="' + savedSaveUrl + '"]');
+    if (radio) radio.checked = true;
 }
 
-const savedVideoUrl = localStorage.getItem('savedVideoUrl');
+var savedVideoUrl = localStorage.getItem('savedVideoUrl');
 if (savedVideoUrl && localStorage.getItem('saveVideoUrl') === 'true') {
     document.getElementById('videoUrl').value = savedVideoUrl;
-    const videoPlayer = document.getElementById('videoPlayer');
-    let url = savedVideoUrl;
-    if (!url.includes('://')) {
+    var videoPlayer = document.getElementById('videoPlayer');
+    var url = savedVideoUrl;
+    if (url.indexOf('://') === -1) {
         url = 'https://' + url;
     }
     videoPlayer.src = url;
-    document.querySelector('input[name="source"][value="url"]').checked = true;
+    var urlRadio = document.querySelector('input[name="source"][value="url"]');
+    if (urlRadio) urlRadio.checked = true;
 }
 
 function handleKeyPress(event) {
     if (event.key === 'Enter') {
+        var videoUrl = document.getElementById('videoUrl');
         if (videoUrl.value.trim() !== '') {
             playVideo();
             videoUrl.blur();
@@ -316,7 +334,9 @@ function handleKeyPress(event) {
 }
 
 // 设置电脑端最大宽度
-document.body.style.maxWidth = '800px';
+if (document.body && document.body.style) {
+    document.body.style.maxWidth = '800px';
+}
 </script>
 </body>
 </html>
