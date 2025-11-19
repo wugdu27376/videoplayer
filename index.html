@@ -26,6 +26,7 @@
 <!-- 倍速选择区域 -->
 <div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
     <div style="display: inline-block;"><label><b>速度: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.25" onchange="changeSpeed(this.value)">0.25x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.5" onchange="changeSpeed(this.value)">0.5x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.75" onchange="changeSpeed(this.value)">0.75x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="1.0" checked onchange="changeSpeed(this.value)">1.0x</label></div>
@@ -33,6 +34,7 @@
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="1.5" onchange="changeSpeed(this.value)">1.5x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="2.0" onchange="changeSpeed(this.value)">2.0x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="3.0" onchange="changeSpeed(this.value)">3.0x</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="speed" value="4.0" onchange="changeSpeed(this.value)">4.0x</label></div>
 </div>
 
 <!-- 音量选择区域 -->
@@ -51,15 +53,37 @@
     <div style="display: inline-block;"><label><input type="radio" name="volume" value="1.0" checked onchange="changeVolume(this.value)">100%</label></div>
 </div>
 
+<div style="margin-top: 5px; max-width: 900px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+
 <!-- 循环播放选择区域 -->
-<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+<div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
     <div style="display: inline-block;"><label><b>循环播放: </b></label></div>
     <div style="display: inline-block;"><label><input type="radio" name="loop" value="false" checked onchange="changeLoop(this.value)">否</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="loop" value="true" onchange="changeLoop(this.value)">是</label></div>
 </div>
 
+<!-- 加载附件选择区域 -->
+<div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>加载附件: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="attachment" value="none" checked onchange="changeAttachment(this.value)">无</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="attachment" value="hls" onchange="changeAttachment(this.value)">HLS</label></div>
+</div>
+
+<div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>下载通道: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="downloadChannel" value="external" checked onchange="changeDownloadChannel(this.value)">外置</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="downloadChannel" value="internal" onchange="changeDownloadChannel(this.value)">内置</label></div>
+</div>
+
+<!-- 保留视频链接选择区域 -->
+<div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>保留视频链接: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="saveUrl" value="false" checked onchange="changeSaveUrl(this.value)">不允许</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="saveUrl" value="true" onchange="changeSaveUrl(this.value)">允许</label></div>
+</div>
+
 <!-- 来源选择区域 -->
-<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+<div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
     <div style="display: inline-block;"><label><b>来源: </b></label></div>
     <div style="display: inline-block;"><label><input type="radio" name="source" value="none" onchange="handleSourceChange(this.value)">无</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="source" value="url" checked onchange="handleSourceChange(this.value)">URL</label></div>
@@ -67,11 +91,14 @@
     <input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;" onchange="handleFileSelect(this.files)">
 </div>
 
+</div>
+
 <script>
 function playVideo() {
     const videoUrl = document.getElementById('videoUrl').value.trim();
     const videoPlayer = document.getElementById('videoPlayer');
     const urlRadio = document.querySelector('input[name="source"][value="url"]');
+    const saveUrl = localStorage.getItem('saveVideoUrl');
     
     if (videoUrl) {
         urlRadio.checked = true;
@@ -82,6 +109,10 @@ function playVideo() {
         videoPlayer.src = url;
         videoPlayer.load();
         videoPlayer.style.backgroundColor = 'transparent';
+        
+        if (saveUrl === 'true') {
+            localStorage.setItem('savedVideoUrl', videoUrl);
+        }
     }
 }
 
@@ -90,34 +121,53 @@ function changeSpeed(speed) {
     videoPlayer.playbackRate = parseFloat(speed);
 }
 
+function changeDownloadChannel(channel) {
+    localStorage.setItem('downloadChannel', channel);
+}
+
 function downloadVideo() {
     const videoUrl = document.getElementById('videoUrl').value.trim();
     const fileInput = document.getElementById('fileInput');
+    const downloadChannel = localStorage.getItem('downloadChannel') || 'external';
     
-    if (videoUrl) {
-        fetch(videoUrl)
-            .then(response => response.blob())
-            .then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = function() {
-                    const a = document.createElement('a');
-                    a.href = reader.result;
-                    a.download = 'video.mp4';
-                    a.click();
-                };
-                reader.readAsDataURL(blob);
-            });
-    } else if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onloadend = function() {
-            const a = document.createElement('a');
-            a.href = reader.result;
-            a.download = file.name;
-            a.click();
-        };
-        reader.readAsDataURL(file);
+    if (downloadChannel === 'external' && videoUrl) {
+        let url = videoUrl;
+        if (!url.includes('://')) {
+            url = 'https://' + url;
+        }
+        window.open(url, '_blank');
+    } else {
+        if (videoUrl) {
+            fetch(videoUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onloadend = function() {
+                        const a = document.createElement('a');
+                        a.href = reader.result;
+                        a.download = 'video.mp4';
+                        a.click();
+                    };
+                    reader.readAsDataURL(blob);
+                });
+        } else if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const a = document.createElement('a');
+                a.href = reader.result;
+                a.download = file.name;
+                a.click();
+            };
+            reader.readAsDataURL(file);
+        }
     }
+}
+
+// 加载保存的下载通道设置
+const savedDownloadChannel = localStorage.getItem('downloadChannel');
+if (savedDownloadChannel) {
+    document.querySelector(`input[name="downloadChannel"][value="${savedDownloadChannel}"]`).checked = true;
 }
 
 function adjustSize() {
@@ -126,7 +176,7 @@ function adjustSize() {
     
     if (!isHLS && videoPlayer.videoWidth === 0 && videoPlayer.videoHeight === 0) {
         videoPlayer.style.maxWidth = '400px';
-        videoPlayer.style.maxHeight = '100px';
+        videoPlayer.style.maxHeight = '70px';
     } else {
         videoPlayer.style.maxWidth = '100%';
         videoPlayer.style.maxHeight = '100vh';
@@ -159,6 +209,7 @@ function handleSourceChange(source) {
         videoPlayer.playbackRate = 1.0;
         fileInput.value = '';
         document.getElementById('videoUrl').value = '';
+        localStorage.removeItem('savedVideoUrl');
     } else if (source === 'local') {
         fileInput.click();
     } else {
@@ -185,6 +236,9 @@ function handleFileSelect(files) {
         const objectURL = URL.createObjectURL(file);
         videoPlayer.src = objectURL;
         videoPlayer.style.backgroundColor = 'transparent';
+        document.querySelector('input[name="speed"][value="1.0"]').checked = true;
+        localStorage.removeItem('savedVideoUrl');
+        videoUrl.value = '';
     } else {
         urlRadio.checked = true;
         videoPlayer.src = '';
@@ -204,6 +258,59 @@ if (savedLoop) {
     const videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.loop = savedLoop === 'true';
     document.querySelector(`input[name="loop"][value="${savedLoop}"]`).checked = true;
+}
+
+function changeAttachment(attachment) {
+    localStorage.setItem('videoAttachment', attachment);
+    
+    if (attachment === 'hls') {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/hls.js@latest';
+        script.onload = function() {
+            if (Hls.isSupported()) {
+                const videoPlayer = document.getElementById('videoPlayer');
+                const hls = new Hls();
+                hls.loadSource(videoPlayer.src);
+                hls.attachMedia(videoPlayer);
+            }
+        };
+        document.head.appendChild(script);
+    }
+}
+
+// 加载保存的附件设置
+const savedAttachment = localStorage.getItem('videoAttachment');
+if (savedAttachment) {
+    document.querySelector(`input[name="attachment"][value="${savedAttachment}"]`).checked = true;
+    if (savedAttachment === 'hls') {
+        changeAttachment('hls');
+    }
+}
+
+function changeSaveUrl(saveUrl) {
+    localStorage.setItem('saveVideoUrl', saveUrl);
+    if (saveUrl === 'false') {
+        localStorage.removeItem('savedVideoUrl');
+    }
+}
+
+// 加载保存的链接设置和视频链接
+const savedSaveUrl = localStorage.getItem('saveVideoUrl');
+if (savedSaveUrl) {
+    document.querySelector(`input[name="saveUrl"][value="${savedSaveUrl}"]`).checked = true;
+}
+
+const savedVideoUrl = localStorage.getItem('savedVideoUrl');
+if (savedVideoUrl && localStorage.getItem('saveVideoUrl') === 'true') {
+    document.getElementById('videoUrl').value = savedVideoUrl;
+    const videoPlayer = document.getElementById('videoPlayer');
+    let url = savedVideoUrl;
+    if (!url.includes('://')) {
+        url = 'https://' + url;
+    }
+    videoPlayer.src = url;
+    videoPlayer.style.backgroundColor = 'transparent';
+    document.querySelector('input[name="source"][value="url"]').checked = true;
 }
 
 function handleKeyPress(event) {
