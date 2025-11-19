@@ -17,7 +17,7 @@
 <div style="margin-top: 10px;">
     <video id="videoPlayer" 
            controls 
-           style="background-color: black; max-width: 100%; max-height: 100vh; width: 100%;"
+           style="max-width: 100%; max-height: 100vh; width: 100%;"
            onloadedmetadata="adjustSize()">
         您的浏览器不支持视频播放
     </video>
@@ -108,7 +108,6 @@ function playVideo() {
         }
         videoPlayer.src = url;
         videoPlayer.load();
-        videoPlayer.style.backgroundColor = 'transparent';
         
         if (saveUrl === 'true') {
             localStorage.setItem('savedVideoUrl', videoUrl);
@@ -204,7 +203,6 @@ function handleSourceChange(source) {
     
     if (source === 'none') {
         videoPlayer.src = '';
-        videoPlayer.style.backgroundColor = 'black';
         document.querySelector('input[name="speed"][value="1.0"]').checked = true;
         videoPlayer.playbackRate = 1.0;
         fileInput.value = '';
@@ -219,10 +217,8 @@ function handleSourceChange(source) {
                 url = 'https://' + url;
             }
             videoPlayer.src = url;
-            videoPlayer.style.backgroundColor = 'transparent';
         } else {
             videoPlayer.src = '';
-            videoPlayer.style.backgroundColor = 'black';
         }
     }
 }
@@ -235,14 +231,12 @@ function handleFileSelect(files) {
         const file = files[0];
         const objectURL = URL.createObjectURL(file);
         videoPlayer.src = objectURL;
-        videoPlayer.style.backgroundColor = 'transparent';
         document.querySelector('input[name="speed"][value="1.0"]').checked = true;
         localStorage.removeItem('savedVideoUrl');
         videoUrl.value = '';
     } else {
         urlRadio.checked = true;
         videoPlayer.src = '';
-        videoPlayer.style.backgroundColor = 'black';
     }
 }
 
@@ -309,7 +303,6 @@ if (savedVideoUrl && localStorage.getItem('saveVideoUrl') === 'true') {
         url = 'https://' + url;
     }
     videoPlayer.src = url;
-    videoPlayer.style.backgroundColor = 'transparent';
     document.querySelector('input[name="source"][value="url"]').checked = true;
 }
 
