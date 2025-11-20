@@ -129,14 +129,14 @@ function downloadVideo() {
     var fileInput = document.getElementById('fileInput');
     var downloadChannel = localStorage.getItem('downloadChannel') || 'external';
     
-    // 检查是否正在下载
+    // 检查是否正在下载 - 兼容IE低版本
     var existingProgress = document.getElementById('downloadProgress');
     if (existingProgress && window.currentXHR) {
         return; // 如果正在下载，不执行新的下载
     }
     
-    // 移除已存在的下载进度显示（如果是已完成或错误的）
-    if (existingProgress) {
+    // 移除已存在的下载进度显示（如果是已完成或错误的）- 兼容IE低版本
+    if (existingProgress && existingProgress.parentNode) {
         document.body.removeChild(existingProgress);
     }
     
@@ -155,7 +155,13 @@ function downloadVideo() {
             progressDiv.innerHTML = '下载进度: Downloading...';
             document.body.appendChild(progressDiv);
             
-            var xhr = new XMLHttpRequest();
+            var xhr;
+            if (window.XMLHttpRequest) {
+                xhr = new XMLHttpRequest();
+            } else {
+                // 兼容IE5、IE6
+                xhr = new ActiveXObject("Microsoft.XMLHTTP");
+            }
             window.currentXHR = xhr; // 保存当前下载的XHR对象
             
             xhr.open('GET', videoUrl, true);
