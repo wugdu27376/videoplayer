@@ -292,8 +292,3 @@ function handleKeyPress(event) {
         }
     }
 }
-
-// 设置电脑端最大宽度
-if (document.body && document.body.style) {
-    document.body.style.maxWidth = '800px';
-}
