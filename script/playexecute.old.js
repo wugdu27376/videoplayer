@@ -132,13 +132,6 @@ function downloadVideo() {
     }
 }
 
-// 加载保存的下载通道设置
-var savedDownloadChannel = localStorage.getItem('downloadChannel');
-if (savedDownloadChannel) {
-    var radio = document.querySelector('input[name="downloadChannel"][value="' + savedDownloadChannel + '"]');
-    if (radio) radio.checked = true;
-}
-
 function adjustSize() {
     var videoPlayer = document.getElementById('videoPlayer');
     var isHLS = videoPlayer.src.indexOf('.m3u8') !== -1;
@@ -156,15 +149,6 @@ function changeVolume(volume) {
     var videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.volume = parseFloat(volume);
     localStorage.setItem('videoVolume', volume);
-}
-
-// 加载保存的音量设置
-var savedVolume = localStorage.getItem('videoVolume');
-if (savedVolume) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.volume = parseFloat(savedVolume);
-    var radio = document.querySelector('input[name="volume"][value="' + savedVolume + '"]');
-    if (radio) radio.checked = true;
 }
 
 function handleSourceChange(source) {
@@ -219,15 +203,6 @@ function changeLoop(loop) {
     localStorage.setItem('videoLoop', loop);
 }
 
-// 加载保存的循环播放设置
-var savedLoop = localStorage.getItem('videoLoop');
-if (savedLoop) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.loop = savedLoop === 'true';
-    var radio = document.querySelector('input[name="loop"][value="' + savedLoop + '"]');
-    if (radio) radio.checked = true;
-}
-
 function changeAttachment(attachment) {
     localStorage.setItem('videoAttachment', attachment);
     
@@ -246,28 +221,11 @@ function changeAttachment(attachment) {
     }
 }
 
-// 加载保存的附件设置
-var savedAttachment = localStorage.getItem('videoAttachment');
-if (savedAttachment) {
-    var radio = document.querySelector('input[name="attachment"][value="' + savedAttachment + '"]');
-    if (radio) radio.checked = true;
-    if (savedAttachment === 'hls') {
-        changeAttachment('hls');
-    }
-}
-
 function changeSaveUrl(saveUrl) {
     localStorage.setItem('saveVideoUrl', saveUrl);
     if (saveUrl === 'false') {
         localStorage.removeItem('savedVideoUrl');
     }
-}
-
-// 加载保存的链接设置和视频链接
-var savedSaveUrl = localStorage.getItem('saveVideoUrl');
-if (savedSaveUrl) {
-    var radio = document.querySelector('input[name="saveUrl"][value="' + savedSaveUrl + '"]');
-    if (radio) radio.checked = true;
 }
 
 var savedVideoUrl = localStorage.getItem('savedVideoUrl');
