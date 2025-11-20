@@ -99,6 +99,7 @@ function playVideo() {
     var videoPlayer = document.getElementById('videoPlayer');
     var urlRadio = document.querySelector('input[name="source"][value="url"]');
     var saveUrl = localStorage.getItem('saveVideoUrl');
+    var attachment = localStorage.getItem('videoAttachment') || 'none';
     
     if (videoUrl) {
         urlRadio.checked = true;
@@ -108,6 +109,31 @@ function playVideo() {
         }
         videoPlayer.src = url;
         videoPlayer.load();
+        
+        if (attachment === 'hls' && url.indexOf('.m3u8') !== -1) {
+            if (typeof Hls === 'undefined') {
+                var script = document.createElement('script');
+                script.src = 'https://unpkg.com/hls.js@latest';
+                script.onload = function() {
+                    if (Hls.isSupported()) {
+                        var hls = new Hls();
+                        hls.loadSource(url);
+                        hls.attachMedia(videoPlayer);
+                    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoPlayer.src = url;
+                    }
+                };
+                document.head.appendChild(script);
+            } else {
+                if (Hls.isSupported()) {
+                    var hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(videoPlayer);
+                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoPlayer.src = url;
+                }
+            }
+        }
         
         if (saveUrl === 'true') {
             localStorage.setItem('savedVideoUrl', videoUrl);
