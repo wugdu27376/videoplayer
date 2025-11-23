@@ -23,8 +23,15 @@
     </video>
 </div>
 
+<div style="margin-top: 10px; max-width: 800px; width: 100%; height: 24px; display: flex;">
+    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="-30s" onclick="seekVideo(-30)">
+    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="-15s" onclick="seekVideo(-15)">
+    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="+15s" onclick="seekVideo(15)">
+    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="+30s" onclick="seekVideo(30)">
+</div>
+
 <!-- 倍速选择区域 -->
-<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+<div style="margin-top: 7px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
     <div style="display: inline-block;"><label><b>速度: </b></label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.25" onchange="changeSpeed(this.value)">0.25x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.5" onchange="changeSpeed(this.value)">0.5x</label></div>
@@ -108,6 +115,7 @@ function playVideo() {
             url = 'https://' + url;
         }
         videoPlayer.src = url;
+        videoPlayer.currentTime = 0;
         videoPlayer.load();
         
         if (attachment === 'hls' && url.indexOf('.m3u8') !== -1) {
@@ -267,6 +275,11 @@ if (savedDownloadChannel) {
     if (radio) radio.checked = true;
 }
 
+function seekVideo(seconds) {
+    var videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.currentTime += seconds;
+}
+
 function adjustSize() {
     var videoPlayer = document.getElementById('videoPlayer');
     var isHLS = videoPlayer.src.indexOf('.m3u8') !== -1;
@@ -331,6 +344,7 @@ function handleFileSelect(files) {
         var file = files[0];
         var objectURL = URL.createObjectURL(file);
         videoPlayer.src = objectURL;
+        videoPlayer.currentTime = 0;
         var speedRadio = document.querySelector('input[name="speed"][value="1.0"]');
         if (speedRadio) speedRadio.checked = true;
         localStorage.removeItem('savedVideoUrl');
@@ -386,7 +400,12 @@ if (savedAttachment) {
 
 function changeSaveUrl(saveUrl) {
     localStorage.setItem('saveVideoUrl', saveUrl);
-    if (saveUrl === 'false') {
+    if (saveUrl === 'true') {
+        var videoUrl = document.getElementById('videoUrl').value.trim();
+        if (videoUrl && videoUrl.indexOf('://') !== -1) {
+            localStorage.setItem('savedVideoUrl', videoUrl);
+        }
+    } else {
         localStorage.removeItem('savedVideoUrl');
     }
 }
