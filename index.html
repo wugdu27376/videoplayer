@@ -254,16 +254,17 @@ function downloadVideo() {
             xhr.send();
         } else if (fileInput.files.length > 0) {
             var file = fileInput.files[0];
-            var reader = new FileReader();
-            reader.onloadend = function() {
-                var a = document.createElement('a');
-                a.href = reader.result;
-                a.download = file.name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            };
-            reader.readAsDataURL(file);
+            var blobUrl = URL.createObjectURL(file);
+            var a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            // 释放 blob URL 内存
+            setTimeout(function() {
+                URL.revokeObjectURL(blobUrl);
+            }, 100);
         }
     }
 }
