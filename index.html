@@ -4,13 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>视频播放器</title>
+    <script>
+    (function() {
+        var links = [
+            'https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.css',
+            'https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.css',
+            'https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.css',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css',
+            'https://unpkg.com/font-awesome@4.7.0/css/font-awesome.css'
+        ];
+        
+        var currentIndex = 0;
+        
+        function loadCSS(url) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = url;
+            
+            // 兼容低版本浏览器的 onerror 事件
+            link.onerror = function() {
+                // 移除加载失败的链接
+                if (link.parentNode) {
+                    link.parentNode.removeChild(link);
+                }
+                
+                // 尝试下一个备用链接
+                currentIndex++;
+                if (currentIndex < links.length) {
+                    loadCSS(links[currentIndex]);
+                }
+            };
+            
+            // 使用 onload 来确认链接加载成功
+            link.onload = function() {
+                // 成功加载，不做任何操作
+            };
+            
+            document.head.appendChild(link);
+        }
+        
+        // 开始加载第一个链接
+        if (links.length > 0) {
+            loadCSS(links[0]);
+        }
+    })();
+    </script>
+</head>
 </head>
 <body>
+<style>
+.flexbox-webkit {
+    display: flex;
+    display: -webkit-box;      /* OLD: iOS 6-, Safari 3.1-6 */
+    display: -moz-box;         /* OLD: Firefox 19- */
+    display: -ms-flexbox;      /* TWEENER: IE 10 */
+    display: -webkit-flex;     /* NEW: Chrome 21-28, Safari 8- */
+    
+    -webkit-box-direction: normal;      /* OLD */
+    -webkit-box-orient: horizontal;     /* OLD */
+    -moz-box-direction: normal;         /* OLD */
+    -moz-box-orient: horizontal;        /* OLD */
+    -webkit-flex-direction: row;        /* NEW, Chrome 21-28 */
+    -ms-flex-direction: row;            /* IE 10 */
+    flex-direction: row;                /* NEW, Spec */
+    
+    -webkit-box-pack: left;           /* OLD */
+    -moz-box-pack: left;              /* OLD */
+    -ms-flex-pack: left;              /* IE 10 */
+    -webkit-justify-content: left;    /* Chrome 21-28 */
+    justify-content: left;            /* NEW, Spec */
+    
+    -webkit-box-align: left;          /* OLD */
+    -moz-box-align: left;             /* OLD */
+    -ms-flex-align: left;             /* IE 10 */
+    -webkit-align-items: left;        /* Chrome 21-28 */
+    align-items: left;                /* NEW, Spec */
+    
+    -webkit-align-content: stretch;     /* Chrome 21-28 */
+    -ms-flex-line-pack: stretch;        /* IE 10 */
+    align-content: stretch;             /* NEW, Spec */
+}
+
+.flexbox-webkit-left {
+    -webkit-box-pack: left;           /* OLD */
+    -moz-box-pack: left;              /* OLD */
+    -ms-flex-pack: left;              /* IE 10 */
+    -webkit-justify-content: left;    /* Chrome 21-28 */
+    justify-content: left;            /* NEW, Spec */
+}
+
+.flexbox-webkit-center {
+    -webkit-box-pack: center;           /* OLD */
+    -moz-box-pack: center;              /* OLD */
+    -ms-flex-pack: center;              /* IE 10 */
+    -webkit-justify-content: center;    /* Chrome 21-28 */
+    justify-content: center;            /* NEW, Spec */
+}
+
+button.player-submit-btn-pointer {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button.player-submit-btn-pointer:disabled {
+    cursor: text;
+}
+</style>
 <!-- 第一行：输入框和播放按钮 -->
-<div style="display: flex;">
-    <input type="text" id="videoUrl" placeholder="请输入视频下载链接" style="min-width: 10%; width: 68%; max-width: 800px;" onkeypress="handleKeyPress(event)">
-    <input type="button" style="margin-left: 3px;" value="下载" onclick="downloadVideo()">
-    <input type="button" style="margin-left: 3px;" value="播放" onclick="playVideo()">
+<div style="width: 95%;" class="flexbox-webkit flexbox-webkit-left">
+    <input type="text" id="videoUrl" placeholder="请输入视频下载链接" style="width: 100%; min-width: 10%; max-width: 800px;" onkeypress="handleKeyPress(event)">
+    <button id="downloadVideoBtn" class="player-submit-btn-pointer" style="display: none; white-space: nowrap;" onclick="downloadVideo()" disabled></button>
+    <button id="playVideoBtn" class="player-submit-btn-pointer" onclick="playVideo()" disabled></button>
 </div>
 
 <!-- 第二行：视频播放区域 -->
@@ -21,13 +125,19 @@
            onloadedmetadata="adjustSize()">
         您的浏览器不支持视频播放
     </video>
+    <!-- 新增：视频隐藏时显示的时间信息和进度条 -->
+    <div id="videoHiddenInfo" style="display: none; width: 87%; max-width: 385px; margin: 0 auto; padding: 10px; border: 1px solid #ccc; background: #f5f5f5;">
+        <div id="timeDisplay" style="margin-bottom: 7px; font-size: 16px;">00:00 / 00:00</div>
+        <input type="range" id="timeRange" style="width: 100%; max-width: 780px;" min="0" max="100" value="0" oninput="updateVideoTimeByRange(this.value)">
+    </div>
 </div>
 
-<div style="margin-top: 10px; max-width: 800px; width: 100%; height: 24px; display: flex;">
-    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="-30s" onclick="seekVideo(-30)">
-    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="-15s" onclick="seekVideo(-15)">
-    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="+15s" onclick="seekVideo(15)">
-    <input type="button" style="margin-left: 3px; width: 100%; max-width: 100px;" value="+30s" onclick="seekVideo(30)">
+<div class="flexbox-webkit flexbox-webkit-center" style="margin-top: 10px; max-width: 800px; width: 100%; height: 24px;">
+    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(-30)" disabled></button>
+    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(-15)" disabled></button>
+    <button id="controlPauseBtn" class="player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="togglePause()" disabled></button>
+    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(15)" disabled></button>
+    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(30)" disabled></button>
 </div>
 
 <!-- 倍速选择区域 -->
@@ -42,6 +152,13 @@
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="2.0" onchange="changeSpeed(this.value)">2.0x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="3.0" onchange="changeSpeed(this.value)">3.0x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="4.0" onchange="changeSpeed(this.value)">4.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="5.0" onchange="changeSpeed(this.value)">5.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="6.0" onchange="changeSpeed(this.value)">6.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="8.0" onchange="changeSpeed(this.value)">8.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="10.0" onchange="changeSpeed(this.value)">10.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="12.0" onchange="changeSpeed(this.value)">12.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="14.0" onchange="changeSpeed(this.value)">14.0x</label></div>
+    <div style="display: none;"><label><input type="radio" name="speed" value="16.0" onchange="changeSpeed(this.value)">16.0x</label></div>
 </div>
 
 <!-- 音量选择区域 -->
@@ -76,6 +193,7 @@
     <div style="display: inline-block;"><label><input type="radio" name="attachment" value="hls" onchange="changeAttachment(this.value)">HLS</label></div>
 </div>
 
+<!-- 下载通道选择区域 -->
 <div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
     <div style="display: inline-block;"><label><b>下载通道: </b></label></div>
     <div style="display: inline-block;"><label><input type="radio" name="downloadChannel" value="external" checked onchange="changeDownloadChannel(this.value)">外置</label></div>
@@ -98,353 +216,22 @@
     <input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;" onchange="handleFileSelect(this.files)">
 </div>
 
+<!-- 按钮显示方式选择区域 -->
+<div style="display: inline-block; margin-top: 5px; max-width: 300px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>按钮显示为: </b></label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="buttonDisplay" value="icon" checked onchange="changeButtonDisplay(this.value)">图标(新)</label></div>
+    <div style="display: inline-block;"><label><input type="radio" name="buttonDisplay" value="text" onchange="changeButtonDisplay(this.value)">文字(经典)</label></div>
 </div>
 
-<script>
-function playVideo() {
-    var videoUrl = document.getElementById('videoUrl').value.trim();
-    var videoPlayer = document.getElementById('videoPlayer');
-    var urlRadio = document.querySelector('input[name="source"][value="url"]');
-    var saveUrl = localStorage.getItem('saveVideoUrl');
-    var attachment = localStorage.getItem('videoAttachment') || 'none';
-    
-    if (videoUrl) {
-        urlRadio.checked = true;
-        var url = videoUrl;
-        if (url.indexOf('://') === -1) {
-            url = 'https://' + url;
-        }
-        videoPlayer.src = url;
-        videoPlayer.currentTime = 0;
-        videoPlayer.load();
-        
-        if (attachment === 'hls' && url.indexOf('.m3u8') !== -1) {
-            if (typeof Hls === 'undefined') {
-                var script = document.createElement('script');
-                script.src = 'https://unpkg.com/hls.js@latest';
-                script.onload = function() {
-                    if (Hls.isSupported()) {
-                        var hls = new Hls();
-                        hls.loadSource(url);
-                        hls.attachMedia(videoPlayer);
-                    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                        videoPlayer.src = url;
-                    }
-                };
-                document.head.appendChild(script);
-            } else {
-                if (Hls.isSupported()) {
-                    var hls = new Hls();
-                    hls.loadSource(url);
-                    hls.attachMedia(videoPlayer);
-                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                    videoPlayer.src = url;
-                }
-            }
-        }
-        
-        if (saveUrl === 'true') {
-            localStorage.setItem('savedVideoUrl', videoUrl);
-        }
-    }
-}
+<!-- 其他设置 -->
+<div style="display: inline-block; margin-top: 5px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+    <div style="display: inline-block;"><label><b>其他设置: </b></label></div>
+    <div style="display: inline-block;"><label><input type="checkbox" id="displayVideoCheckbox" checked>显示视频</label></div>
+    <div style="display: inline-block;"><label><input type="checkbox" id="moreSpeedSelectCheckbox" onchange="toggleMoreSpeedSelect()">显示更多倍速</label></div>
+    <div style="display: inline-block;"><label><input type="checkbox" id="autoPlayCheckbox">自动播放</label></div>
+</div>
 
-function changeSpeed(speed) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.playbackRate = parseFloat(speed);
-}
-
-function changeDownloadChannel(channel) {
-    localStorage.setItem('downloadChannel', channel);
-}
-
-function downloadVideo() {
-    var videoUrl = document.getElementById('videoUrl').value.trim();
-    var fileInput = document.getElementById('fileInput');
-    var downloadChannel = localStorage.getItem('downloadChannel') || 'external';
-    
-    // 检查是否正在下载 - 兼容IE低版本
-    var existingProgress = document.getElementById('downloadProgress');
-    if (existingProgress && window.currentXHR) {
-        return; // 如果正在下载，不执行新的下载
-    }
-    
-    // 移除已存在的下载进度显示（如果是已完成或错误的）- 兼容IE低版本
-    if (existingProgress && existingProgress.parentNode) {
-        document.body.removeChild(existingProgress);
-    }
-    
-    if (downloadChannel === 'external' && videoUrl) {
-        var url = videoUrl;
-        if (url.indexOf('://') === -1) {
-            url = 'https://' + url;
-        }
-        window.open(url, '_blank');
-    } else {
-        if (videoUrl) {
-            // 创建下载进度显示元素
-            var progressDiv = document.createElement('div');
-            progressDiv.id = 'downloadProgress';
-            progressDiv.style.marginTop = '10px';
-            progressDiv.innerHTML = '下载进度: Downloading...';
-            document.body.appendChild(progressDiv);
-            
-            var xhr;
-            if (window.XMLHttpRequest) {
-                xhr = new XMLHttpRequest();
-            } else {
-                // 兼容IE5、IE6
-                xhr = new ActiveXObject("Microsoft.XMLHTTP");
-            }
-            window.currentXHR = xhr; // 保存当前下载的XHR对象
-            
-            xhr.open('GET', videoUrl, true);
-            xhr.responseType = 'blob';
-            
-            var progressTimer = setInterval(function() {
-                if (xhr.total > 0) {
-                    progressDiv.innerHTML = '下载进度: ' + 
-                        (xhr.loaded / 1024 / 1024).toFixed(2) + 'MB / ' + 
-                        (xhr.total / 1024 / 1024).toFixed(2) + 'MB';
-                }
-            }, 1000);
-            
-            xhr.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    progressDiv.innerHTML = '下载进度: ' + 
-                        (e.loaded / 1024 / 1024).toFixed(2) + 'MB / ' + 
-                        (e.total / 1024 / 1024).toFixed(2) + 'MB';
-                }
-            };
-            
-            xhr.onload = function() {
-                clearInterval(progressTimer);
-                window.currentXHR = null; // 清除当前下载的XHR对象
-                if (this.status === 200) {
-                    var blob = this.response;
-                    var reader = new FileReader();
-                    reader.onloadend = function() {
-                        if (progressDiv.parentNode) {
-                            document.body.removeChild(progressDiv);
-                        }
-                        var a = document.createElement('a');
-                        a.href = reader.result;
-                        var fileName = videoUrl.split('/').pop().split('?')[0] || 'video.mp4';
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    };
-                    reader.readAsDataURL(blob);
-                } else {
-                    if (progressDiv.parentNode) {
-                        document.body.removeChild(progressDiv);
-                    }
-                }
-            };
-            
-            xhr.onerror = function() {
-                clearInterval(progressTimer);
-                window.currentXHR = null; // 清除当前下载的XHR对象
-                if (progressDiv.parentNode) {
-                    document.body.removeChild(progressDiv);
-                }
-            };
-            
-            xhr.send();
-        } else if (fileInput.files.length > 0) {
-            var file = fileInput.files[0];
-            var blobUrl = URL.createObjectURL(file);
-            var a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = file.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            // 释放 blob URL 内存
-            setTimeout(function() {
-                URL.revokeObjectURL(blobUrl);
-            }, 100);
-        }
-    }
-}
-
-// 加载保存的下载通道设置
-var savedDownloadChannel = localStorage.getItem('downloadChannel');
-if (savedDownloadChannel) {
-    var radio = document.querySelector('input[name="downloadChannel"][value="' + savedDownloadChannel + '"]');
-    if (radio) radio.checked = true;
-}
-
-function seekVideo(seconds) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.currentTime += seconds;
-}
-
-function adjustSize() {
-    var videoPlayer = document.getElementById('videoPlayer');
-    var isHLS = videoPlayer.src.indexOf('.m3u8') !== -1;
-    
-    if (!isHLS && videoPlayer.videoWidth === 0 && videoPlayer.videoHeight === 0) {
-        videoPlayer.style.maxWidth = '530px';
-        videoPlayer.style.maxHeight = '70px';
-    } else {
-        videoPlayer.style.maxWidth = '100%';
-        videoPlayer.style.maxHeight = '100vh';
-    }
-}
-
-function changeVolume(volume) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.volume = parseFloat(volume);
-    localStorage.setItem('videoVolume', volume);
-}
-
-// 加载保存的音量设置
-var savedVolume = localStorage.getItem('videoVolume');
-if (savedVolume) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.volume = parseFloat(savedVolume);
-    var radio = document.querySelector('input[name="volume"][value="' + savedVolume + '"]');
-    if (radio) radio.checked = true;
-}
-
-function handleSourceChange(source) {
-    var fileInput = document.getElementById('fileInput');
-    var videoPlayer = document.getElementById('videoPlayer');
-    var videoUrl = document.getElementById('videoUrl').value.trim();
-    
-    if (source === 'none') {
-        videoPlayer.src = '';
-        var speedRadio = document.querySelector('input[name="speed"][value="1.0"]');
-        if (speedRadio) speedRadio.checked = true;
-        videoPlayer.playbackRate = 1.0;
-        fileInput.value = '';
-        document.getElementById('videoUrl').value = '';
-        localStorage.removeItem('savedVideoUrl');
-    } else if (source === 'local') {
-        fileInput.click();
-    } else {
-        if (videoUrl) {
-            var url = videoUrl;
-            if (url.indexOf('://') === -1) {
-                url = 'https://' + url;
-            }
-            videoPlayer.src = url;
-        } else {
-            videoPlayer.src = '';
-        }
-    }
-}
-
-function handleFileSelect(files) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    var urlRadio = document.querySelector('input[name="source"][value="url"]');
-    
-    if (files.length > 0) {
-        var file = files[0];
-        var objectURL = URL.createObjectURL(file);
-        videoPlayer.src = objectURL;
-        videoPlayer.currentTime = 0;
-        var speedRadio = document.querySelector('input[name="speed"][value="1.0"]');
-        if (speedRadio) speedRadio.checked = true;
-        localStorage.removeItem('savedVideoUrl');
-        document.getElementById('videoUrl').value = '';
-    } else {
-        if (urlRadio) urlRadio.checked = true;
-        videoPlayer.src = '';
-    }
-}
-
-function changeLoop(loop) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.loop = loop === 'true';
-    localStorage.setItem('videoLoop', loop);
-}
-
-// 加载保存的循环播放设置
-var savedLoop = localStorage.getItem('videoLoop');
-if (savedLoop) {
-    var videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.loop = savedLoop === 'true';
-    var radio = document.querySelector('input[name="loop"][value="' + savedLoop + '"]');
-    if (radio) radio.checked = true;
-}
-
-function changeAttachment(attachment) {
-    localStorage.setItem('videoAttachment', attachment);
-    
-    if (attachment === 'hls') {
-        var script = document.createElement('script');
-        script.src = 'https://unpkg.com/hls.js@latest';
-        script.onload = function() {
-            if (window.Hls && Hls.isSupported()) {
-                var videoPlayer = document.getElementById('videoPlayer');
-                var hls = new Hls();
-                hls.loadSource(videoPlayer.src);
-                hls.attachMedia(videoPlayer);
-            }
-        };
-        document.head.appendChild(script);
-    }
-}
-
-// 加载保存的附件设置
-var savedAttachment = localStorage.getItem('videoAttachment');
-if (savedAttachment) {
-    var radio = document.querySelector('input[name="attachment"][value="' + savedAttachment + '"]');
-    if (radio) radio.checked = true;
-    if (savedAttachment === 'hls') {
-        changeAttachment('hls');
-    }
-}
-
-function changeSaveUrl(saveUrl) {
-    localStorage.setItem('saveVideoUrl', saveUrl);
-    if (saveUrl === 'true') {
-        var videoUrl = document.getElementById('videoUrl').value.trim();
-        if (videoUrl && videoUrl.indexOf('://') !== -1) {
-            localStorage.setItem('savedVideoUrl', videoUrl);
-        }
-    } else {
-        localStorage.removeItem('savedVideoUrl');
-    }
-}
-
-// 加载保存的链接设置和视频链接
-var savedSaveUrl = localStorage.getItem('saveVideoUrl');
-if (savedSaveUrl) {
-    var radio = document.querySelector('input[name="saveUrl"][value="' + savedSaveUrl + '"]');
-    if (radio) radio.checked = true;
-}
-
-var savedVideoUrl = localStorage.getItem('savedVideoUrl');
-if (savedVideoUrl && localStorage.getItem('saveVideoUrl') === 'true') {
-    document.getElementById('videoUrl').value = savedVideoUrl;
-    var videoPlayer = document.getElementById('videoPlayer');
-    var url = savedVideoUrl;
-    if (url.indexOf('://') === -1) {
-        url = 'https://' + url;
-    }
-    videoPlayer.src = url;
-    var urlRadio = document.querySelector('input[name="source"][value="url"]');
-    if (urlRadio) urlRadio.checked = true;
-}
-
-function handleKeyPress(event) {
-    if (event.key === 'Enter') {
-        var videoUrl = document.getElementById('videoUrl');
-        if (videoUrl.value.trim() !== '') {
-            playVideo();
-            videoUrl.blur();
-        }
-    }
-}
-
-// 设置电脑端最大宽度
-if (document.body && document.body.style) {
-    document.body.style.maxWidth = '800px';
-}
-</script>
+</div>
+<script src="js/playVideoScript.js"></script>
 </body>
 </html>
