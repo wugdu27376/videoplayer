@@ -505,6 +505,7 @@ function handleSourceChange(source) {
         timeDisplay.textContent = '00:00 / 00:00';
         timeRange.value = 0;
         localStorage.removeItem('savedVideoUrl');
+        togglePause();
         updateButtonsStatePartEl();
         updateButtonsStatePartEy();
     } else if (source === 'local') {
@@ -518,6 +519,7 @@ function handleSourceChange(source) {
             videoPlayer.src = url;
         } else {
             videoPlayer.src = '';
+            togglePause();
         }
     }
 }
