@@ -519,7 +519,6 @@ function handleSourceChange(source) {
             videoPlayer.src = url;
         } else {
             videoPlayer.src = '';
-            togglePause();
         }
     }
 }
