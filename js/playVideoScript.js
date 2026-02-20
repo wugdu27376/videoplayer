@@ -8,19 +8,60 @@ function togglePause() {
         pauseIcon.className = 'fa fa-pause';
         // 更新文字模式下的按钮文字
         if (controlPauseBtn && localStorage.getItem('buttonDisplay') === 'text') {
-            controlPauseBtn.innerHTML = '暂停';
+            controlPauseBtn.innerHTML = '<b>暂停</b>';
         }
     } else {
         videoPlayer.pause();
         pauseIcon.className = 'fa fa-play';
         // 更新文字模式下的按钮文字
         if (controlPauseBtn && localStorage.getItem('buttonDisplay') === 'text') {
-            controlPauseBtn.innerHTML = '播放';
+            controlPauseBtn.innerHTML = '<b>播放</b>';
         }
     }
 }
 
 function playVideo() {
+    var videoPlayer = document.getElementById('videoPlayer');
+    var controlPauseBtn = document.getElementById('controlPauseBtn');
+    
+    // 当视频为非暂停状态时自动暂停视频
+    if (videoPlayer && !videoPlayer.paused) {
+        videoPlayer.pause();
+    }
+    
+    var videoUrl = document.getElementById('videoUrl').value.trim();
+    var videoPlayer = document.getElementById('videoPlayer');
+    var urlRadio = document.querySelector('input[name="source"][value="url"]');
+    var saveUrl = localStorage.getItem('saveVideoUrl');
+    var attachment = localStorage.getItem('videoAttachment') || 'none';
+    
+    // 播放下一个链接时清除之前保存的播放时间
+    var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+    var currentVideoUrl = videoUrl;
+    if (currentVideoUrl && savedVideoUrl && currentVideoUrl !== savedVideoUrl) {
+        // 如果输入的新链接与保存的链接不同，清除保存的播放时间
+        localStorage.removeItem('savedVideoTime_' + savedVideoUrl);
+        console.log('播放下一个链接，清除之前保存的播放时间');
+    }
+    
+    // 检查controlPauseBtn按钮是否为暂停显示，不是将此按钮改为弹出状态显示
+    if (controlPauseBtn) {
+        var pauseIcon = controlPauseBtn.querySelector('i');
+        var buttonDisplay = localStorage.getItem('buttonDisplay') || 'icon';
+        
+        if (buttonDisplay === 'icon') {
+            // 图标模式
+            if (pauseIcon && pauseIcon.className !== 'fa fa-play') {
+                pauseIcon.className = 'fa fa-play';
+            }
+        } else if (buttonDisplay === 'text') {
+            // 文字模式
+            if (controlPauseBtn.innerHTML !== '<b>播放</b>') {
+                controlPauseBtn.innerHTML = '<b>播放</b>';
+            }
+        }
+    }
+    
     var videoUrl = document.getElementById('videoUrl').value.trim();
     var videoPlayer = document.getElementById('videoPlayer');
     var urlRadio = document.querySelector('input[name="source"][value="url"]');
@@ -38,7 +79,63 @@ function playVideo() {
         videoPlayer.load();
         updateButtonsStatePartEl();
         
-        // 新增：无论视频是否显示，都启用按钮
+        // 检查是否需要跳转到上次播放时间
+        var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+        var savedVideoTime = localStorage.getItem('savedVideoTime_' + savedVideoUrl);
+        
+        // 只有当保存的链接与当前链接完全一致时才跳转
+        if (savedVideoUrl && savedVideoUrl === videoUrl && savedVideoTime) {
+            // 设置一个标记，表示这是需要跳转的视频
+            videoPlayer.dataset.shouldRestoreTime = 'true';
+            
+            // 监听视频加载完成事件来跳转时间
+            var restoreTimeHandler = function() {
+                if (videoPlayer.dataset.shouldRestoreTime === 'true') {
+                    var time = parseFloat(savedVideoTime);
+                    if (!isNaN(time) && time > 0) {
+                        // 延迟一点确保视频可以跳转
+                        setTimeout(function() {
+                            if (videoPlayer.duration && time < videoPlayer.duration) {
+                                videoPlayer.currentTime = time;
+                                console.log('跳转到上次播放时间：' + time + '秒');
+                            }
+                            // 移除标记和事件监听
+                            delete videoPlayer.dataset.shouldRestoreTime;
+                            videoPlayer.removeEventListener('loadedmetadata', restoreTimeHandler);
+                        }, 300);
+                    }
+                }
+            };
+            
+            videoPlayer.addEventListener('loadedmetadata', restoreTimeHandler);
+        }
+        
+        // 新增：检查是否为m3u8视频链接，如果是则启用按钮
+        if (url.indexOf('.m3u8') !== -1) {
+            setTimeout(function() {
+                var controlBtn = document.getElementById('controlPauseBtn');
+                var skipBtns = document.querySelectorAll('.skipSecondsBtn');
+                var downloadBtn = document.getElementById('downloadVideoBtn');
+                
+                if (controlBtn) controlBtn.disabled = false;
+                
+                for (var i = 0; i < skipBtns.length; i++) {
+                    skipBtns[i].disabled = false;
+                }
+                
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.style.display = 'block';
+                }
+                
+                // 如果视频当前是隐藏的，更新时间显示
+                if (videoPlayer.style.display === 'none' || getComputedStyle(videoPlayer).display === 'none') {
+                    updateTimeDisplay();
+                }
+            }, 500);
+        }
+        
+        // 无论视频是否显示，都启用按钮
         setTimeout(function() {
             if (isVideoValid) {
                 var controlBtn = document.getElementById('controlPauseBtn');
@@ -88,7 +185,7 @@ function playVideo() {
             }
         }
         
-        // 新增：如果视频被隐藏，设置定时器更新时间显示
+        // 如果视频被隐藏，设置定时器更新时间显示
         var displayVideoCheckbox = document.getElementById('displayVideoCheckbox');
         if (displayVideoCheckbox && !displayVideoCheckbox.checked) {
             // 视频隐藏时的处理
@@ -116,8 +213,9 @@ function playVideo() {
             }, 100);
         }
         
-        // 在playVideo函数中，在videoPlayer.load()之后添加：
         var autoPlayCheckbox = document.getElementById('autoPlayCheckbox');
+        // 移除之前可能存在的onloadeddata事件处理器
+        videoPlayer.onloadeddata = null;
         if (autoPlayCheckbox && autoPlayCheckbox.checked) {
             videoPlayer.onloadeddata = function() {
                 videoPlayer.play().catch(function(e) {
@@ -144,10 +242,10 @@ function updateButtonsStatePart() {
         downloadBtn.style.position = 'relative';
     }
     
-    // 新增：确保控制按钮也启用
+    // 确保控制按钮也启用
     if (controlBtn) controlBtn.disabled = false;
     
-    // 新增：确保快进/快退按钮也启用
+    // 确保快进/快退按钮也启用
     for (var i = 0; i < skipBtns.length; i++) {
         skipBtns[i].disabled = false;
     }
@@ -184,6 +282,361 @@ function changeSpeed(speed) {
     videoPlayer.playbackRate = parseFloat(speed);
 }
 
+function handleCustomSpeed() {
+    var videoPlayer = document.getElementById('videoPlayer');
+    var customSpeedRadio = document.getElementById('customSpeedRadio');
+    var editSpeedDiv = document.getElementById('editSpeedDiv');
+    var customSpeedText = document.getElementById('customSpeedText');
+    
+    if (customSpeedRadio && customSpeedRadio.checked) {
+        // 检查是否已设置自定义倍速
+        var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+        var savedCustomSpeedText = localStorage.getItem('customSpeedText');
+        
+        // 如果已设置自定义倍速，直接应用，不弹出提示
+        if (savedCustomSpeed && savedCustomSpeedText) {
+            videoPlayer.playbackRate = parseFloat(savedCustomSpeed);
+            if (customSpeedText) {
+                customSpeedText.textContent = savedCustomSpeedText;
+            }
+            // 显示 edit 选项
+            if (editSpeedDiv) {
+                editSpeedDiv.style.display = 'inline-block';
+            }
+            return;
+        }
+        
+        // 保存当前播放状态
+        var wasPlaying = !videoPlayer.paused;
+        // 如果正在播放，暂停视频
+        if (wasPlaying) {
+            videoPlayer.pause();
+        }
+        
+        // 获取当前播放速率，如果未保存自定义倍速，则使用空值或当前播放速率
+        var defaultSpeedValue = '';
+        var currentSpeed = videoPlayer.playbackRate;
+        
+        // 使用 prompt 提示输入倍速
+        var defaultSpeedValue = '';
+        var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+        
+        // 如果有保存的自定义倍速值，使用它作为默认值
+        if (savedCustomSpeed) {
+            defaultSpeedValue = savedCustomSpeed;
+        } else {
+            // 否则使用当前播放速率
+            defaultSpeedValue = '';
+        }
+        
+        // 使用 prompt 提示输入倍速
+        var speedInput = prompt('请输入自定义倍速 (0.063 - 16.0):', defaultSpeedValue);
+        
+        // 恢复播放状态
+        if (wasPlaying) {
+            videoPlayer.play();
+        }
+        
+        // 如果用户取消或关闭提示，取消选择 custom 选项
+        if (speedInput === null) {
+            // 取消时选回为当前选择倍速
+            var currentSpeed = videoPlayer.playbackRate;
+            
+            // 查找当前播放速率对应的单选按钮
+            var speedRadios = document.querySelectorAll('input[name="speed"]');
+            var foundRadio = null;
+            
+            for (var i = 0; i < speedRadios.length; i++) {
+                var radio = speedRadios[i];
+                var radioValue = parseFloat(radio.value);
+                
+                // 跳过custom和edit选项
+                if (radio.value === 'custom' || radio.value === 'edit') {
+                    continue;
+                }
+                
+                // 检查是否匹配当前播放速率
+                if (Math.abs(radioValue - currentSpeed) < 0.01) {
+                    foundRadio = radio;
+                    break;
+                }
+            }
+            
+            // 如果找到匹配的按钮，选中它
+            if (foundRadio) {
+                foundRadio.checked = true;
+            } else {
+                // 如果没有找到，选择1.0x
+                var defaultSpeedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+                if (defaultSpeedRadio) {
+                    defaultSpeedRadio.checked = true;
+                }
+            }
+            
+            customSpeedRadio.checked = false;
+            return;
+        }
+        
+        // 如果输入为空，选择1.0倍速
+        if (speedInput.trim() === '') {
+            var defaultSpeedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+            if (defaultSpeedRadio) {
+                defaultSpeedRadio.checked = true;
+                videoPlayer.playbackRate = 1.0;
+            }
+            customSpeedRadio.checked = false;
+            return;
+        }
+        
+        // 验证输入
+        var speed = parseFloat(speedInput);
+        if (isNaN(speed) || speed < 0.063 || speed > 16.0) {
+            console.log('请输入有效的倍速值 (0.063 - 16.0)');
+            // 取消选择 custom 选项，恢复默认 1.0x
+            var defaultSpeedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+            if (defaultSpeedRadio) {
+                defaultSpeedRadio.checked = true;
+                videoPlayer.playbackRate = 1.0;
+            }
+            customSpeedRadio.checked = false;
+            return;
+        }
+        
+        // 应用自定义倍速
+        videoPlayer.playbackRate = speed;
+        
+        // 更新显示文本
+        if (customSpeedText) {
+            // 动态计算小数位数
+            var speedText = formatSpeedDecimal(speed) + 'x';
+            customSpeedText.textContent = speedText;
+            // 保存到本地存储 - 使用格式化后的数值部分
+            localStorage.setItem('customSpeedValue', speed.toString().indexOf('.') === -1 ? speed.toFixed(1) : speed.toString());
+            localStorage.setItem('customSpeedText', speedText);
+        }
+        
+        // 显示 edit 选项
+        if (editSpeedDiv) {
+            editSpeedDiv.style.display = 'inline-block';
+        }
+    }
+}
+
+function handleEditSpeed() {
+    var videoPlayer = document.getElementById('videoPlayer');
+    var editSpeedRadio = document.getElementById('editSpeedRadio');
+    var customSpeedText = document.getElementById('customSpeedText');
+    var customSpeedRadio = document.getElementById('customSpeedRadio');
+    var editSpeedDiv = document.getElementById('editSpeedDiv');
+    
+    if (editSpeedRadio && editSpeedRadio.checked) {
+        // 保存当前播放状态
+        var wasPlaying = !videoPlayer.paused;
+        // 如果正在播放，暂停视频
+        if (wasPlaying) {
+            videoPlayer.pause();
+        }
+        
+        // 获取当前播放速率作为默认值
+        var currentSpeed = videoPlayer.playbackRate;
+        // 使用 prompt 提示输入倍速
+        var defaultSpeedValue = '';
+        var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+        
+        // 如果有保存的自定义倍速值，使用它作为默认值
+        if (savedCustomSpeed) {
+            defaultSpeedValue = savedCustomSpeed;
+        } else {
+            // 否则使用当前播放速率
+            defaultSpeedValue = '';
+        }
+        
+        // 使用 prompt 提示输入倍速
+        var speedInput = prompt('请输入自定义倍速 (0.063 - 16.0):', defaultSpeedValue);
+        
+        // 恢复播放状态
+        if (wasPlaying) {
+            videoPlayer.play();
+        }
+        
+        // 如果用户取消或关闭提示
+        if (speedInput === null) {
+            // 取消时选回为当前选择的value="custom"选择
+            var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+            var savedCustomSpeedText = localStorage.getItem('customSpeedText');
+            
+            if (savedCustomSpeed && savedCustomSpeedText) {
+                // 检查当前播放速率是否与保存的自定义倍速匹配
+                var currentSpeed = videoPlayer.playbackRate;
+                var savedSpeed = parseFloat(savedCustomSpeed);
+                
+                if (Math.abs(currentSpeed - savedSpeed) < 0.01) {
+                    // 如果当前播放速率与保存的自定义倍速匹配，保持选择custom
+                    customSpeedRadio.checked = true;
+                } else {
+                    // 如果不匹配，查找当前播放速率对应的单选按钮
+                    var speedRadios = document.querySelectorAll('input[name="speed"]');
+                    var foundRadio = null;
+                    
+                    for (var i = 0; i < speedRadios.length; i++) {
+                        var radio = speedRadios[i];
+                        var radioValue = parseFloat(radio.value);
+                        
+                        // 跳过custom和edit选项
+                        if (radio.value === 'custom' || radio.value === 'edit') {
+                            continue;
+                        }
+                        
+                        // 检查是否匹配当前播放速率
+                        if (Math.abs(radioValue - currentSpeed) < 0.01) {
+                            foundRadio = radio;
+                            break;
+                        }
+                    }
+                    
+                    // 如果找到匹配的按钮，选中它
+                    if (foundRadio) {
+                        foundRadio.checked = true;
+                        customSpeedRadio.checked = false;
+                    } else {
+                        // 如果没有找到，保持选择custom
+                        customSpeedRadio.checked = true;
+                    }
+                }
+            } else {
+                // 没有保存的自定义倍速，查找当前播放速率对应的单选按钮
+                var currentSpeed = videoPlayer.playbackRate;
+                var speedRadios = document.querySelectorAll('input[name="speed"]');
+                var foundRadio = null;
+                
+                for (var i = 0; i < speedRadios.length; i++) {
+                    var radio = speedRadios[i];
+                    var radioValue = parseFloat(radio.value);
+                    
+                    // 跳过custom和edit选项
+                    if (radio.value === 'custom' || radio.value === 'edit') {
+                        continue;
+                    }
+                    
+                    // 检查是否匹配当前播放速率
+                    if (Math.abs(radioValue - currentSpeed) < 0.01) {
+                        foundRadio = radio;
+                        break;
+                    }
+                }
+                
+                // 如果找到匹配的按钮，选中它
+                if (foundRadio) {
+                    foundRadio.checked = true;
+                    customSpeedRadio.checked = false;
+                } else {
+                    // 如果没有找到，选择1.0x
+                    var defaultSpeedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+                    if (defaultSpeedRadio) {
+                        defaultSpeedRadio.checked = true;
+                        customSpeedRadio.checked = false;
+                    }
+                }
+            }
+            return;
+        }
+        
+        // 如果输入为空
+        if (speedInput.trim() === '') {
+            // 输入为空时选择1.0倍速
+            var defaultSpeedRadio = document.querySelector('input[name="speed"][value="1.0"]');
+            if (defaultSpeedRadio) {
+                defaultSpeedRadio.checked = true;
+                videoPlayer.playbackRate = 1.0;
+            }
+            
+            // 隐藏 edit 选项
+            if (editSpeedDiv) {
+                editSpeedDiv.style.display = 'none';
+            }
+            
+            // 恢复 custom 显示文本
+            if (customSpeedText) {
+                customSpeedText.textContent = '自定义';
+            }
+            
+            // 清除本地存储
+            localStorage.removeItem('customSpeedValue');
+            localStorage.removeItem('customSpeedText');
+            
+            // 取消选择 edit 选项
+            editSpeedRadio.checked = false;
+            return;
+        }
+        
+        // 验证输入
+        var speed = parseFloat(speedInput);
+        if (isNaN(speed) || speed < 0.063 || speed > 16.0) {
+            console.log('请输入有效的倍速值 (0.063 - 16.0)');
+            // 恢复 custom 选项的选择
+            if (customSpeedRadio) {
+                customSpeedRadio.checked = true;
+            }
+            editSpeedRadio.checked = false;
+            return;
+        }
+        
+        // 应用自定义倍速
+        videoPlayer.playbackRate = speed;
+        
+        // 更新显示文本
+        if (customSpeedText) {
+            // 动态计算小数位数
+            var speedText = formatSpeedDecimal(speed) + 'x';
+            customSpeedText.textContent = speedText;
+            // 保存到本地存储 - 使用格式化后的数值部分
+            localStorage.setItem('customSpeedValue', speed.toString().indexOf('.') === -1 ? speed.toFixed(1) : speed.toString());
+            localStorage.setItem('customSpeedText', speedText);
+        }
+        
+        // 不选择 edit 选项，改为选择 custom 选项
+        editSpeedRadio.checked = false;
+        if (customSpeedRadio) {
+            customSpeedRadio.checked = true;
+        }
+    }
+}
+
+// 格式化倍速小数位数
+function formatSpeedDecimal(speed) {
+    // 将速度转换为字符串
+    var speedStr = speed.toString();
+    
+    // 查找小数部分
+    var decimalIndex = speedStr.indexOf('.');
+    
+    if (decimalIndex === -1) {
+        // 没有小数，添加 .0 后缀
+        return speedStr + '.0';
+    }
+    
+    // 获取小数部分
+    var decimalPart = speedStr.substring(decimalIndex + 1);
+    
+    // 根据小数位数决定保留几位
+    if (decimalPart.length <= 2) {
+        // 1-2位小数，保留原样
+        return speed.toFixed(decimalPart.length);
+    } else {
+        // 3位或更多小数，最多保留3位，并去除末尾的0
+        var formatted = speed.toFixed(3);
+        // 去除末尾的0
+        while (formatted.endsWith('0')) {
+            formatted = formatted.substring(0, formatted.length - 1);
+        }
+        // 如果最后是小数点，添加0
+        if (formatted.endsWith('.')) {
+            formatted = formatted + '0';
+        }
+        return formatted;
+    }
+}
+
 function changeDownloadChannel(channel) {
     localStorage.setItem('downloadChannel', channel);
 }
@@ -216,7 +669,7 @@ function downloadVideo() {
             var progressDiv = document.createElement('div');
             progressDiv.id = 'downloadProgress';
             progressDiv.style.marginTop = '10px';
-            progressDiv.innerHTML = '下载进度: Downloading...';
+            progressDiv.innerHTML = '正在连接...';
             document.body.appendChild(progressDiv);
             
             var xhr;
@@ -243,7 +696,8 @@ function downloadVideo() {
                 if (e.lengthComputable) {
                     progressDiv.innerHTML = '下载进度: ' + 
                         (e.loaded / 1024 / 1024).toFixed(2) + 'MB / ' + 
-                        (e.total / 1024 / 1024).toFixed(2) + 'MB';
+                        (e.total / 1024 / 1024).toFixed(2) + 'MB' +
+                        '<button onclick="(function(){if(window.currentXHR){window.currentXHR.abort();}var progressDiv=document.getElementById(\'downloadProgress\');if(progressDiv&&progressDiv.parentNode){progressDiv.parentNode.removeChild(progressDiv);}window.currentXHR=null;})()" style="height: 14px; width: 14px; cursor: pointer; background: transparent; border: none; margin-left: 12px; position: relative; top: 5px;"><i style="position: relative; bottom: 4.5px; right: 6.5px; font-size: 18px;" class="fa fa-close"></i></button>';
                 }
             };
             
@@ -255,7 +709,10 @@ function downloadVideo() {
                     var reader = new FileReader();
                     reader.onloadend = function() {
                         if (progressDiv.parentNode) {
-                            document.body.removeChild(progressDiv);
+                            setTimeout(function() {
+                                document.body.removeChild(progressDiv);
+                            }, 1500);
+                            progressDiv.innerHTML = '下载完成';
                         }
                         var a = document.createElement('a');
                         a.href = reader.result;
@@ -268,7 +725,10 @@ function downloadVideo() {
                     reader.readAsDataURL(blob);
                 } else {
                     if (progressDiv.parentNode) {
-                        document.body.removeChild(progressDiv);
+                        setTimeout(function() {
+                            document.body.removeChild(progressDiv);
+                        }, 1500);
+                        progressDiv.innerHTML = '下载完成';
                     }
                 }
             };
@@ -277,7 +737,10 @@ function downloadVideo() {
                 clearInterval(progressTimer);
                 window.currentXHR = null; // 清除当前下载的XHR对象
                 if (progressDiv.parentNode) {
-                    document.body.removeChild(progressDiv);
+                    setTimeout(function() {
+                        document.body.removeChild(progressDiv);
+                    }, 1500);
+                    progressDiv.innerHTML = '下载失败！';
                 }
             };
             
@@ -341,6 +804,15 @@ function adjustSize() {
             if (videoPlayer.videoWidth !== 0) {
                 isVideo = true;
             }
+        }
+    }
+    
+    // 新增：检查是否为m3u8视频链接
+    if (!isVideo) {
+        var src = videoPlayer.src || '';
+        var srcLower = src.toLowerCase();
+        if (srcLower.indexOf('.m3u8') !== -1) {
+            isVideo = true;
         }
     }
     
@@ -456,6 +928,42 @@ function toggleMoreSpeedSelect() {
                     }
                 }
             }
+            // 显示 custom 选项
+            var customSpeedDiv = document.getElementById('customSpeedDiv');
+            if (customSpeedDiv) {
+                customSpeedDiv.style.display = 'inline-block';
+            }
+            // 检查是否有保存的自定义倍速，如果有则显示edit选项
+            var editSpeedDiv = document.getElementById('editSpeedDiv');
+            var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+            var savedCustomSpeedText = localStorage.getItem('customSpeedText');
+                if (editSpeedDiv) {
+                if (savedCustomSpeed && savedCustomSpeedText) {
+                    editSpeedDiv.style.display = 'inline-block';
+                } else {
+                    editSpeedDiv.style.display = 'none';
+                }
+            }
+            // 加载保存的自定义倍速设置
+            var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+            var savedCustomSpeedText = localStorage.getItem('customSpeedText');
+            var moreSpeedCheckbox = document.getElementById('moreSpeedSelectCheckbox');
+            
+            // 只有勾选了moreSpeedSelectCheckbox时才显示edit选项
+            if (savedCustomSpeed && savedCustomSpeedText && moreSpeedCheckbox && moreSpeedCheckbox.checked) {
+                var customSpeedText = document.getElementById('customSpeedText');
+                var editSpeedDiv = document.getElementById('editSpeedDiv');
+                
+                if (customSpeedText) {
+                    // 这里不需要修改，因为已经保存了格式化后的文本
+                    customSpeedText.textContent = savedCustomSpeedText;
+                }
+                
+                // 显示edit选项
+                if (editSpeedDiv) {
+                    editSpeedDiv.style.display = 'inline-block';
+                }
+            }
         } else {
             // 隐藏更多倍速选项 - 兼容所有浏览器
             var speedValues = ['5.0', '6.0', '8.0', '10.0', '12.0', '14.0', '16.0'];
@@ -467,6 +975,15 @@ function toggleMoreSpeedSelect() {
                         parentDiv.style.display = 'none';
                     }
                 }
+            }
+            // 隐藏 custom 和 edit 选项
+            var customSpeedDiv = document.getElementById('customSpeedDiv');
+            if (customSpeedDiv) {
+                customSpeedDiv.style.display = 'none';
+            }
+            var editSpeedDiv = document.getElementById('editSpeedDiv');
+            if (editSpeedDiv) {
+                editSpeedDiv.style.display = 'none';
             }
         }
     }
@@ -504,6 +1021,10 @@ function handleSourceChange(source) {
         document.getElementById('videoUrl').value = '';
         timeDisplay.textContent = '00:00 / 00:00';
         timeRange.value = 0;
+        var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+        if (savedVideoUrl) {
+            localStorage.removeItem('savedVideoTime_' + savedVideoUrl);
+        }
         localStorage.removeItem('savedVideoUrl');
         togglePause();
         updateButtonsStatePartEl();
@@ -519,11 +1040,44 @@ function handleSourceChange(source) {
             videoPlayer.src = url;
         } else {
             videoPlayer.src = '';
+            fileInput.value = '';
         }
     }
 }
 
 function handleFileSelect(files) {
+    var videoPlayer = document.getElementById('videoPlayer');
+    var controlPauseBtn = document.getElementById('controlPauseBtn');
+    
+    // 当视频为非暂停状态时自动暂停视频
+    if (videoPlayer && !videoPlayer.paused) {
+        videoPlayer.pause();
+    }
+    
+    // 播放本地文件时清除之前保存的播放时间
+    var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+    if (savedVideoUrl) {
+        localStorage.removeItem('savedVideoTime_' + savedVideoUrl);
+    }
+    
+    // 检查controlPauseBtn按钮是否为暂停显示，不是将此按钮改为弹出状态显示
+    if (controlPauseBtn) {
+        var pauseIcon = controlPauseBtn.querySelector('i');
+        var buttonDisplay = localStorage.getItem('buttonDisplay') || 'icon';
+        
+        if (buttonDisplay === 'icon') {
+            // 图标模式
+            if (pauseIcon && pauseIcon.className !== 'fa fa-play') {
+                pauseIcon.className = 'fa fa-play';
+            }
+        } else if (buttonDisplay === 'text') {
+            // 文字模式
+            if (controlPauseBtn.innerHTML !== '<b>播放</b>') {
+                controlPauseBtn.innerHTML = '<b>播放</b>';
+            }
+        }
+    }
+    
     var videoPlayer = document.getElementById('videoPlayer');
     var urlRadio = document.querySelector('input[name="source"][value="url"]');
     
@@ -537,7 +1091,7 @@ function handleFileSelect(files) {
         localStorage.removeItem('savedVideoUrl');
         document.getElementById('videoUrl').value = '';
         
-        // 新增：启用按钮（无论视频是否显示）
+        // 启用按钮（无论视频是否显示）
         setTimeout(function() {
             var controlBtn = document.getElementById('controlPauseBtn');
             var skipBtns = document.querySelectorAll('.skipSecondsBtn');
@@ -560,7 +1114,7 @@ function handleFileSelect(files) {
             }
         }, 300);
         
-        // 新增：如果视频被隐藏，设置定时器更新时间显示
+        // 如果视频被隐藏，设置定时器更新时间显示
         var displayVideoCheckbox = document.getElementById('displayVideoCheckbox');
         if (displayVideoCheckbox && !displayVideoCheckbox.checked) {
             // 视频隐藏时的处理
@@ -590,6 +1144,8 @@ function handleFileSelect(files) {
         
         // 在handleFileSelect函数中，在videoPlayer.src = objectURL之后添加：
         var autoPlayCheckbox = document.getElementById('autoPlayCheckbox');
+        // 移除之前可能存在的onloadeddata事件处理器
+        videoPlayer.onloadeddata = null;
         if (autoPlayCheckbox && autoPlayCheckbox.checked) {
             videoPlayer.onloadeddata = function() {
                 videoPlayer.play().catch(function(e) {
@@ -656,7 +1212,19 @@ function changeSaveUrl(saveUrl) {
             localStorage.setItem('savedVideoUrl', videoUrl);
         }
     } else {
+        // 同时清除该链接的播放时间
+        var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+        if (savedVideoUrl) {
+            localStorage.removeItem('savedVideoTime_' + savedVideoUrl);
+        }
         localStorage.removeItem('savedVideoUrl');
+        
+        // 清除可能的残留时间记录
+        for (var key in localStorage) {
+            if (key.startsWith('savedVideoTime_')) {
+                localStorage.removeItem(key);
+            }
+        }
     }
 }
 
@@ -679,7 +1247,94 @@ if (savedVideoUrl && localStorage.getItem('saveVideoUrl') === 'true') {
     var urlRadio = document.querySelector('input[name="source"][value="url"]');
     if (urlRadio) urlRadio.checked = true;
     updateButtonsStatePartEy();
-    updateButtonsStatePart();
+    
+    // 初始状态保持按钮禁用
+    updateButtonsStatePartEl();
+    
+    // 添加事件监听器检查链接是否有效
+    videoPlayer.addEventListener('error', function() {
+        // 视频加载失败，保持按钮禁用
+        updateButtonsStatePartEl();
+        
+        // 链接失效时清除保存的播放时间
+        var savedVideoTimeKey = 'savedVideoTime_' + savedVideoUrl;
+        if (localStorage.getItem(savedVideoTimeKey)) {
+            localStorage.removeItem(savedVideoTimeKey);
+            console.log('链接失效，清除保存的播放时间');
+        }
+        
+        // 清除跳转标记，防止后续尝试跳转
+        if (videoPlayer.dataset.shouldRestoreTime) {
+            delete videoPlayer.dataset.shouldRestoreTime;
+        }
+        
+        // 移除之前可能添加的跳转事件监听器
+        var existingRestoreHandler = videoPlayer.onloadedmetadata;
+        if (existingRestoreHandler) {
+            videoPlayer.onloadedmetadata = null;
+        }
+    });
+    
+    // 页面加载时跳转到上次播放时间
+    var savedVideoTime = localStorage.getItem('savedVideoTime_' + savedVideoUrl);
+    if (savedVideoTime) {
+        // 设置标记，等待视频加载完成后跳转
+        videoPlayer.dataset.shouldRestoreTime = 'true';
+        
+        var restoreTimeOnLoad = function() {
+            if (videoPlayer.dataset.shouldRestoreTime === 'true') {
+                var time = parseFloat(savedVideoTime);
+                if (!isNaN(time) && time > 0) {
+                    // 等待视频完全加载
+                    var checkLoaded = function() {
+                        if (videoPlayer.readyState >= 2) { // HAVE_CURRENT_DATA
+                            if (videoPlayer.duration && time < videoPlayer.duration) {
+                                videoPlayer.currentTime = time;
+                                console.log('页面加载跳转到上次播放时间：' + time + '秒');
+                                
+                                // 跳转后检查是否自动播放
+                                var autoPlayCheckbox = document.getElementById('autoPlayCheckbox');
+                                if (autoPlayCheckbox && autoPlayCheckbox.checked) {
+                                    videoPlayer.play().catch(function(e) {
+                                        console.log('页面加载跳转后自动播放失败:', e);
+                                    });
+                                }
+                                // === 新增结束 ===
+                            }
+                            // 清除标记
+                            delete videoPlayer.dataset.shouldRestoreTime;
+                        } else {
+                            // 继续等待
+                            setTimeout(checkLoaded, 100);
+                        }
+                    };
+                    setTimeout(checkLoaded, 300);
+                }
+                // 移除事件监听
+                videoPlayer.removeEventListener('loadedmetadata', restoreTimeOnLoad);
+            }
+        };
+        
+        videoPlayer.addEventListener('loadedmetadata', restoreTimeOnLoad);
+    }
+    
+    videoPlayer.addEventListener('loadedmetadata', function() {
+        // 视频加载成功，启用按钮
+        var controlBtn = document.getElementById('controlPauseBtn');
+        var skipBtns = document.querySelectorAll('.skipSecondsBtn');
+        var downloadBtn = document.getElementById('downloadVideoBtn');
+        
+        if (controlBtn) controlBtn.disabled = false;
+        
+        for (var i = 0; i < skipBtns.length; i++) {
+            skipBtns[i].disabled = false;
+        }
+        
+        if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.style.display = 'block';
+        }
+    });
 }
 
 function handleKeyPress(event) {
@@ -729,8 +1384,8 @@ function changeButtonDisplay(displayType) {
         // 处理四个快进/快退按钮
         if (skipBtns && skipBtns.length >= 4) {
             skipBtns[0].innerHTML = '-30s';
-            skipBtns[1].innerHTML = '-15s';
-            skipBtns[2].innerHTML = '+15s';
+            skipBtns[1].innerHTML = '-10s';
+            skipBtns[2].innerHTML = '+10s';
             skipBtns[3].innerHTML = '+30s';
         }
         
@@ -738,9 +1393,9 @@ function changeButtonDisplay(displayType) {
             // 根据当前播放状态显示文字
             var videoPlayer = document.getElementById('videoPlayer');
             if (videoPlayer && videoPlayer.paused) {
-                controlPauseBtn.innerHTML = '播放';
+                controlPauseBtn.innerHTML = '<b>播放</b>';
             } else {
-                controlPauseBtn.innerHTML = '暂停';
+                controlPauseBtn.innerHTML = '<b>暂停</b>';
             }
         }
         
@@ -787,7 +1442,7 @@ function changeButtonDisplay(displayType) {
         }
         
         if (controlPauseBtn) {
-            // 修改：根据当前播放状态显示对应图标
+            // 根据当前播放状态显示对应图标
             var videoPlayer = document.getElementById('videoPlayer');
             if (videoPlayer && videoPlayer.paused) {
                 controlPauseBtn.innerHTML = '<i style="margin-top: -6px; margin-left: -6px; position: absolute;" class="fa fa-play"></i>';
@@ -813,9 +1468,9 @@ function changeButtonDisplay(displayType) {
                 if (i === 0) {
                     text = '后退30秒';
                 } else if (i === 1) {
-                    text = '后退15秒';
+                    text = '后退10秒';
                 } else if (i === 2) {
-                    text = '前进15秒';
+                    text = '前进10秒';
                 } else if (i === 3) {
                     text = '前进30秒';
                 }
@@ -829,7 +1484,7 @@ window.addEventListener('load', function() {
     // 监听视频播放状态变化
     var videoPlayer = document.getElementById('videoPlayer');
     
-    // 新增：初始加载时，如果视频隐藏且没有源，保持按钮禁用
+    // 初始加载时，如果视频隐藏且没有源，保持按钮禁用
     var displayVideoCheckbox = document.getElementById('displayVideoCheckbox');
     if (displayVideoCheckbox && !displayVideoCheckbox.checked) {
         // 如果视频隐藏，检查是否有视频源
@@ -868,6 +1523,27 @@ window.addEventListener('load', function() {
         }
     }
     
+    // 加载保存的自定义倍速设置
+    var savedCustomSpeed = localStorage.getItem('customSpeedValue');
+    var savedCustomSpeedText = localStorage.getItem('customSpeedText');
+    var moreSpeedCheckbox = document.getElementById('moreSpeedSelectCheckbox');
+    
+    // 只有勾选了moreSpeedSelectCheckbox时才显示edit选项
+    if (savedCustomSpeed && savedCustomSpeedText && moreSpeedCheckbox && moreSpeedCheckbox.checked) {
+    var customSpeedText = document.getElementById('customSpeedText');
+        var editSpeedDiv = document.getElementById('editSpeedDiv');
+        
+        if (customSpeedText) {
+            // 这里不需要修改，因为已经保存了格式化后的文本
+            customSpeedText.textContent = savedCustomSpeedText;
+        }
+        
+        // 显示edit选项
+        if (editSpeedDiv) {
+            editSpeedDiv.style.display = 'inline-block';
+        }
+    }
+    
     // 加载保存的自动播放设置
     var savedAutoPlay = localStorage.getItem('autoPlay');
     if (savedAutoPlay !== null) {
@@ -884,7 +1560,7 @@ window.addEventListener('load', function() {
     }
     videoPlayer.addEventListener('play', function() {
         var pauseIcon = document.querySelector('#controlPauseBtn i');
-        var skipBtns = document.querySelectorAll('.skipSecondsBtn'); // 新增：获取所有快进/快退按钮
+        var skipBtns = document.querySelectorAll('.skipSecondsBtn'); // 获取所有快进/快退按钮
         
         if (pauseIcon) {
             pauseIcon.className = 'fa fa-pause';
@@ -892,7 +1568,7 @@ window.addEventListener('load', function() {
         
         // 更新文字模式下的按钮文字
         if (controlPauseBtn && localStorage.getItem('buttonDisplay') === 'text') {
-            controlPauseBtn.innerHTML = '暂停';
+            controlPauseBtn.innerHTML = '<b>暂停</b>';
         }
         
         // 监听视频时间更新事件
@@ -900,6 +1576,58 @@ window.addEventListener('load', function() {
             // 如果视频被隐藏，更新时间显示
             if (videoPlayer.style.display === 'none' || getComputedStyle(videoPlayer).display === 'none') {
                 updateTimeDisplay();
+            }
+            
+            // 保存当前播放时间
+            var videoUrl = document.getElementById('videoUrl').value.trim();
+            var saveUrlSetting = localStorage.getItem('saveVideoUrl');
+            
+            // 只有同时满足以下条件才保存播放时间：
+            // 1. 有有效的视频URL
+            // 2. 保存链接功能开启
+            // 3. 当前保存的链接与正在播放的链接一致
+            // 4. 视频已加载完成（避免保存刚加载的时间）
+            // 5. 视频没有播放结束（新增条件）
+            if (videoUrl && saveUrlSetting === 'true') {
+                var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+                
+                // 只有当保存的链接与当前播放的链接完全一致时才保存时间
+                if (savedVideoUrl && savedVideoUrl === videoUrl) {
+                    var currentTime = videoPlayer.currentTime;
+                    // 检查视频是否播放结束（新增条件）
+                    var isPlaybackEnded = videoPlayer.dataset.playbackEnded === 'true';
+                    
+                    // 只有在视频加载完成后且没有播放结束才开始保存时间
+                    if (videoPlayer.readyState >= 4 && currentTime < videoPlayer.duration && !isPlaybackEnded) { // 修改：添加!isPlaybackEnded条件
+                        // 使用更小的保存频率（每0.5秒保存一次）
+                        if (!window.lastSaveTime || (Date.now() - window.lastSaveTime > 500)) {
+                            localStorage.setItem('savedVideoTime_' + savedVideoUrl, currentTime);
+                            window.lastSaveTime = Date.now();
+                        }
+                    }
+                }
+            }
+        });
+            
+        // 监听视频播放结束事件
+        videoPlayer.addEventListener('ended', function() {
+            var videoUrl = document.getElementById('videoUrl').value.trim();
+            var savedVideoUrl = localStorage.getItem('savedVideoUrl');
+            
+            // 如果当前视频是保存的视频链接，清除其播放时间
+            if (videoUrl && savedVideoUrl && videoUrl === savedVideoUrl) {
+                localStorage.removeItem('savedVideoTime_' + savedVideoUrl);
+            }
+            
+            // 设置标记表示视频已播放结束
+            videoPlayer.dataset.playbackEnded = 'true';
+        });
+        
+        // 监听视频播放事件（重新开始播放时）
+        videoPlayer.addEventListener('play', function() {
+            // 清除播放结束标记
+            if (videoPlayer.dataset.playbackEnded === 'true') {
+                delete videoPlayer.dataset.playbackEnded;
             }
         });
         
@@ -919,7 +1647,7 @@ window.addEventListener('load', function() {
     videoPlayer.addEventListener('pause', function() {
         var pauseIcon = document.querySelector('#controlPauseBtn i');
         var controlBtn = document.getElementById('controlPauseBtn');
-        var skipBtns = document.querySelectorAll('.skipSecondsBtn'); // 新增：获取所有快进/快退按钮
+        var skipBtns = document.querySelectorAll('.skipSecondsBtn'); // 获取所有快进/快退按钮
         
         if (pauseIcon) {
             pauseIcon.className = 'fa fa-play';
@@ -927,7 +1655,7 @@ window.addEventListener('load', function() {
         
         // 更新文字模式下的按钮文字
         if (controlBtn && localStorage.getItem('buttonDisplay') === 'text') {
-            controlBtn.innerHTML = '播放';
+            controlBtn.innerHTML = '<b>播放</b>';
         }
         
         // 兼容性处理：如果视频源为空，禁用控制按钮
@@ -937,7 +1665,7 @@ window.addEventListener('load', function() {
             if (downloadBtn) downloadBtn.disabled = true;
             if (downloadBtn) downloadBtn.style.display = 'none';
             
-            // 新增：禁用所有快进/快退按钮
+            // 禁用所有快进/快退按钮
             skipBtns.forEach(function(btn) {
                 btn.disabled = true;
             });
@@ -1000,7 +1728,7 @@ window.addEventListener('load', function() {
             downloadBtn.disabled = true;
         }
         
-        // 新增：如果视频被隐藏，也更新按钮状态
+        // 如果视频被隐藏，也更新按钮状态
         var displayVideoCheckbox = document.getElementById('displayVideoCheckbox');
         if (displayVideoCheckbox && !displayVideoCheckbox.checked) {
             updateButtonsStatePartEl();
@@ -1024,7 +1752,7 @@ window.addEventListener('load', function() {
             videoPlayer.style.display = 'none';
             document.getElementById('videoHiddenInfo').style.display = 'block';
             
-            // 修改：检查视频是否损坏或无效链接
+            // 检查视频是否损坏或无效链接
             var isVideoValid = false;
             
             if (videoPlayer.src && videoPlayer.src !== window.location.href) {
@@ -1095,7 +1823,7 @@ window.addEventListener('load', function() {
                 videoPlayer.style.display = 'none';
                 document.getElementById('videoHiddenInfo').style.display = 'block';
                 
-                // 修改：检查视频是否损坏或无效链接
+                // 检查视频是否损坏或无效链接
                 var isVideoValid = false;
                 
                 // 方法1: 检查视频源是否存在
@@ -1177,14 +1905,14 @@ window.addEventListener('load', function() {
     }
 });
 
-// 新增：更新时间显示的函数
+// 更新时间显示的函数
 function updateTimeDisplay() {
     var videoPlayer = document.getElementById('videoPlayer');
     var timeDisplay = document.getElementById('timeDisplay');
     var timeRange = document.getElementById('timeRange');
     
     if (videoPlayer && timeDisplay && timeRange) {
-        // 修改：使用更可靠的方式获取当前时间，避免NaN
+        // 使用更可靠的方式获取当前时间，避免NaN
         var currentTime = videoPlayer.currentTime || 0;
         var duration = videoPlayer.duration || 0;
         
@@ -1395,9 +2123,9 @@ if (skipSecondsBtns && skipSecondsBtns.length > 0) {
         if (i === 0) {
             text = '后退30秒';
         } else if (i === 1) {
-            text = '后退15秒';
+            text = '后退10秒';
         } else if (i === 2) {
-            text = '前进15秒';
+            text = '前进10秒';
         } else if (i === 3) {
             text = '前进30秒';
         }
