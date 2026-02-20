@@ -135,14 +135,14 @@ button.player-submit-btn-pointer:disabled {
 
 <div class="flexbox-webkit flexbox-webkit-center" style="margin-top: 10px; max-width: 800px; width: 100%; height: 24px;">
     <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(-30)" disabled></button>
-    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(-15)" disabled></button>
+    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(-10)" disabled></button>
     <button id="controlPauseBtn" class="player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="togglePause()" disabled></button>
-    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(15)" disabled></button>
+    <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(10)" disabled></button>
     <button class="skipSecondsBtn player-submit-btn-pointer" style="margin-left: 3px; width: 100%; max-width: 100px;" onclick="seekVideo(30)" disabled></button>
 </div>
 
 <!-- 倍速选择区域 -->
-<div style="margin-top: 7px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
+<div style="margin-top: 10px; max-width: 800px; width: 100%; flex-wrap: wrap; overflow-x: auto;">
     <div style="display: inline-block;"><label><b>速度: </b></label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.25" onchange="changeSpeed(this.value)">0.25x</label></div>
     <div style="display: inline-block;"><label><input type="radio" name="speed" value="0.5" onchange="changeSpeed(this.value)">0.5x</label></div>
@@ -160,6 +160,8 @@ button.player-submit-btn-pointer:disabled {
     <div style="display: none;"><label><input type="radio" name="speed" value="12.0" onchange="changeSpeed(this.value)">12.0x</label></div>
     <div style="display: none;"><label><input type="radio" name="speed" value="14.0" onchange="changeSpeed(this.value)">14.0x</label></div>
     <div style="display: none;"><label><input type="radio" name="speed" value="16.0" onchange="changeSpeed(this.value)">16.0x</label></div>
+    <div style="display: none;" id="customSpeedDiv"><label><input type="radio" name="speed" id="customSpeedRadio" value="custom" onchange="handleCustomSpeed()"><span id="customSpeedText">自定义</span></label></div>
+    <div style="display: none;" id="editSpeedDiv"><label><input type="radio" name="speed" id="editSpeedRadio" value="edit" onchange="handleEditSpeed()">编辑</label></div>
 </div>
 
 <!-- 音量选择区域 -->
